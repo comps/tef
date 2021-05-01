@@ -1,0 +1,67 @@
+
+- result reporting
+  - sanitization of test name (escape special chars, replace newline, etc.)
+  - fd0 locking
+  - terminal detection, colors
+  - TEF_RESULTS_FD
+
+- log creation
+  - rotation
+  - TEF_LOGS
+
+- path normalization
+  - absolute to relative
+  - never above CWD
+  - sanitization
+
+- MARK result
+  - done using alarm(2)
+  - make sure any other code is interrupt-safe (ie. waitpid) and re-tries what it was doing
+    if interrupted by a signal
+
+# argument-less run:
+
+- directory list (scandir wrapper)
+  - alphabetic sorting
+  - filtering out basename(argv[0])
+  - filtering out hidden files (starting with .), incl. '.' and '..'
+  - filter out all non-executables && non-directories
+  - filtering out directories where access(2) on $dir/basename(argv[0]) is nonexistent / nonexecutable
+  - everything ^^^ done by scandir natively
+  - the result is a list of 100% guaranteed executables (files in CWD, dirs in CWD)
+  - call 'run entry' on each entry that passed filtering
+
+# argument-given run:
+
+- argument parsing, coalescing (merging)
+  - fairly easy, we care only whether subsequent args share the same toplevel
+    - /shared/a/dontcare , /shared/b/dontcare  -->  run /shared with a/dontcare b/dontcare
+    - we really need only int index for the first '/' (path normalization cuts off leading root '/')
+  - implementation non-trivial, but cleanly possible, copying out elements to a new argv array
+  - 'run entry' is called for each argument (or collection of merged ones), any extra arguments passed
+
+# both run types
+
+- run entry
+  - receives any arguments for the entry
+  - receives one filename (result of a scandir)
+  - if entry is dir
+    - look for basename(argv[0]) in the dir, execute it, pass args, fail if cannot
+  - else
+    - execute the file, pass args, fail if cannot execute
+
+- execute entry
+  - always takes executable file from 'run entry', takes arguments
+  - does the actual fork + execve, .. or clone(2)
+  - gets passed (from parent chain) a list of child pids, to which it adds the forked pid
+  - waits (via wait(2)) until any one child exited, records return value to state passed via parent chain
+    - probably keep some parent-passed state of int of running jobs
+    - before executing anything, do waitpid(2) and collect any zombies, decrementing the jobs cnt
+    - right after execution, increment nr. of jobs by 1
+    - after execution, check if nr. of jobs is >= max nr of jobs, .. if so, do wait(2) for any pid
+
+
+
+
+- warn that readdir(3) is used, which is generally thread-safe,
+  but this is not guaranteed by POSIX.1
