@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <libgen.h>
@@ -109,6 +110,17 @@ err:
     return -1;
 }
 
+// execute an executable file in CWD or a directory with an executable file
+// named after basename
+// - if argv is NULL, pass no args, else argv must have [0] allocated and unused
+//   (to be used for argv[0]) and be terminated at [1] or later with NULL
+void execute(char *exe, char *basename, char **argv)
+{
+    (void)exe;
+    (void)basename;
+    (void)argv;
+}
+
 // temporary, for debug
 // TODO execution logic - it needs a big 'if' between directory ents and CWD ents
 //      as the directory ones will need chdir, etc.
@@ -188,8 +200,10 @@ static char *sane_arg(char *a)
 
 // argument-given run
 // ...
-// this function modifies / destroys the passed argv
-static void for_each_arg(int argc, char **argv)
+// TODO: probably swap basename (here and in execute() calls) to
+//       some 'struct state', holding parallel job pids (or so),
+//       CLI-based configuration from user (how many max jobs), etc.
+static void for_each_arg(char *basename, int argc, char **argv)
 {
     char **merged;
     if ((merged = malloc((argc+2)*sizeof(argv))) == NULL) {
@@ -236,8 +250,7 @@ static void for_each_arg(int argc, char **argv)
 standalone:
         // process previously merged args
         if (prefix) {
-            // do execve: call 'prefix' (exec or dir), pass it merged[]
-            // ...
+            execute(prefix, basename, merged);
             prefix = NULL;
             // free strdup()'d args
             for (int i = 1; merged[i] != NULL; i++)
@@ -251,8 +264,7 @@ standalone:
         if (!sane)
             continue;
 
-        // do execve: call 'sane' (exec or dir), pass it no args
-        // ...
+        execute(sane, basename, NULL);
         continue;
     }
 
