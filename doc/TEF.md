@@ -44,8 +44,7 @@ subdirectories. For example `a` or `a/b/c`.
 
 Before executing a file or a runner inside a directory, the topmost level
 of the path in the argument is stripped and the result is passed to the
-executable/runner. If this would result in the argument being empty, it is
-omitted.
+executable/runner.
 
 For example:
 ```
@@ -68,10 +67,16 @@ current directory, ie.
 - it runs 'b', passing 'c/d' as an argument to it
 ```
 
-All arguments need to be normalized and fully resolved prior to any evaluation,
-that is any `..` paths should be transcribed, `./` removed, etc. If the final
-result leads above CWD, it must be trimmed to stay in CWD, ie. by removing all
-leading `..` elements.
+// any leading slashes should be removed (if they exist)
+// the first path element (until / or end of string) should be examined:
+// - if it has zero length,
+// - if it contains '.' or '..',
+// it is invalid and the entire argument must be skipped, error optionally logged
+// -- TODO in Optional.md - merging must stop on invalid cli argument
+//
+// the runner must not parse the path beyond the first element
+// (it must stop at the first '/' or end of string)
+
 
 ## Exit codes
 
