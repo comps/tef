@@ -191,6 +191,9 @@ static char *sane_arg(char *a)
 // this function modifies / destroys the passed argv
 static void for_each_arg(int argc, char **argv)
 {
+    // malloc array equal to argc+1 (for NULL)
+    // then go through argv, append modified ptrs to malloc'd array
+
     char **merged;
     if ((merged = malloc((argc+2)*sizeof(argv))) == NULL) {
         perror("malloc");
@@ -202,67 +205,49 @@ static void for_each_arg(int argc, char **argv)
     merged[merged_idx] = NULL;
 
     char *prefix = NULL;
-    ptrdiff_t prefix_len = 0;
 
-    int i;
-    for (i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
-        if (!sane)
-            goto standalone;
 
-        char *slash = strchr(sane, '/');
-        if (!slash)
-            goto standalone;
+        char *slash;
+        if (sane)
+            slash = strchr(sane, '/');
+        else
+            slash = NULL;
 
-        // if current arg doesn't match prefix (incl. '/' after it)
-        if (prefix && (strcmp(sane, prefix) != 0 || sane[prefix_len] != '/'))
-            goto standalone;
-
-        // merge this arg
-
-        // no merge in progress, start a new arglist
-        if (!prefix) {
-            prefix_len = slash-sane;
-            prefix = strndup(sane, prefix_len);
-            if (prefix == NULL)
-                goto err;
-        }
-
-        // appending to existing merge arglist
-        merged[merged_idx] = sane+prefix_len+1;  // skip prefix + '/'
-        merged[++merged_idx] = NULL;
-        continue;
-
-standalone:
-        // process previously merged args
-        if (prefix) {
-            // do execve: call 'prefix' (exec or dir), pass it merged[]
+        if (!sane || !slash || strcmp(sane, prefix) != 0) {
+            // finish assembling merged[], pass it for execution
             // ...
-            prefix = NULL;
-            for (int i = 1; merged[i] != NULL; i++) {
-                // free strdup()'d args
-                free(merged[i]);
-            }
+            prefix = NULL;  // reset
             merged_idx = 1;
             merged[merged_idx] = NULL;
+        } else {
+            // starting a new arglist to be merged
+            if (!prefix) {
+                ptrdiff_t slash_off = slash-sane;
+                prefix = strndup(sane, slash_off);
+                merged[merged_idx] = sane+slash_off+1;
+                merged[merged_idx+1] = NULL;
+            } else {
+                .
+                // compare against previous
+                // add to merged
+            }
         }
 
-        // process current non-merge-able (standalone) arg
-
-        if (!sane)
-            continue;
-
-        // do execve: call 'sane' (exec or dir), pass it no args
-        // ...
+merge:
+        ...;
         continue;
+standalone:
+        ...;
+        continue;
+
     }
 
 err:
-    for (i = 1; merged[i] != NULL; i++) {
-        // free strdup()'d args
-        free(merged[i]);
+    if (merged) {
+        ...
     }
-    free(merged);
 }
 
 

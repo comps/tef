@@ -19,17 +19,6 @@
   - make sure any other code is interrupt-safe (ie. waitpid) and re-tries what it was doing
     if interrupted by a signal
 
-# argument-less run:
-
-- directory list (scandir wrapper)
-  - alphabetic sorting
-  - filtering out basename(argv[0])
-  - filtering out hidden files (starting with .), incl. '.' and '..'
-  - filter out all non-executables && non-directories
-  - filtering out directories where access(2) on $dir/basename(argv[0]) is nonexistent / nonexecutable
-  - everything ^^^ done by scandir natively
-  - the result is a list of 100% guaranteed executables (files in CWD, dirs in CWD)
-  - call 'run entry' on each entry that passed filtering
 
 # argument-given run:
 
@@ -39,6 +28,28 @@
     - we really need only int index for the first '/' (path normalization cuts off leading root '/')
   - implementation non-trivial, but cleanly possible, copying out elements to a new argv array
   - 'run entry' is called for each argument (or collection of merged ones), any extra arguments passed
+- practical implementation
+  - save starting index
+    - also save ptr to the current sanitized arg - this will be null-terminated later
+      and this ptr will represent the shared prefix
+  - iterate through arguments
+    - compare previous and current
+      - use strchr, replace found '/' with '\0' because we'll be passing the second portion later
+        - or not, because we can't tell if there's anything valid beyond that '\0',
+          ie. if there was never a '/' (last path portion of the arg)
+      - feel free to sanitize in place, argv is freely modifiable
+        - ie. advance each arg to after the '/', so each arg is directly usable for execve later
+    - if they match, advance to the next arg
+    - if they don't match
+      - use (current idx minus start idx)
+      - do fork
+      - terminate the range with NULL
+        - since the memory is not shared with parent, this is fine (we don't lose next arg in parent)
+        - also, this is safe for the last arg as there's always a NULL element in argv after last arg
+      - do execve
+        - use the initial saved ptr at the beginning as directory-to-execute
+          - do normal dir->basename runner lookup
+        - use processed array range as arguments
 
 # both run types
 
@@ -65,3 +76,7 @@
 
 - warn that readdir(3) is used, which is generally thread-safe,
   but this is not guaranteed by POSIX.1
+
+- look for EINTR of every syscall used, make an INTR-safe wrapper
+  for each one of them
+  - alarm can interrupt anywhere
