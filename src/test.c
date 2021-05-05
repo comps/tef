@@ -239,10 +239,9 @@ standalone:
             // do execve: call 'prefix' (exec or dir), pass it merged[]
             // ...
             prefix = NULL;
-            for (int i = 1; merged[i] != NULL; i++) {
-                // free strdup()'d args
+            // free strdup()'d args
+            for (int i = 1; merged[i] != NULL; i++)
                 free(merged[i]);
-            }
             merged_idx = 1;
             merged[merged_idx] = NULL;
         }
@@ -258,10 +257,9 @@ standalone:
     }
 
 err:
-    for (i = 1; merged[i] != NULL; i++) {
-        // free strdup()'d args
+    // free strdup()'d args
+    for (i = 1; merged[i] != NULL; i++)
         free(merged[i]);
-    }
     free(merged);
 }
 
