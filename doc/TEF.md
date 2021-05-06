@@ -2,6 +2,21 @@
 
 Version 0.7
 
+// TODO: TEF_INTERACTIVE support
+//  - when present in env and non-empty and if no args are given to the runner,
+//    launch interactive $SHELL instead of running all tests
+//    - ie. 'runner /a/b/c' would execute 'c/runner' without args, which would
+//      spawn $SHELL
+//  - very useful for debugging when there's some state in setup/cleanup
+//    provided by parent runners
+
+// TODO: TEF_DEBUG_OUTPUT (?) support
+//  - when present in env and non-empty, do not redirect stdout/err of execs
+//  - this means all output of all runners / tests (all executables) will
+//    interleave with fd0 reported statuses
+//  - again, very useful for debug runs of just a few tests + collecting all
+//    logs on the same console stream without having to read logs dir
+
 ## Unspecified/undefined behavior
 
 Anything outside this specification is implementation-dependent.
