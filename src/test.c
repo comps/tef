@@ -1,3 +1,5 @@
+//#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +10,7 @@
 #include <libgen.h>
 #include <errno.h>
 //#include <sys/types.h>
-//#include <sys/stat.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 
 // free the block if realloc fails
@@ -31,20 +33,34 @@ static bool is_exec(int parentfd, char *name)
     return true;
 }
 
-int alphasort_for_qsort(const void *a, const void *b)
+//int alphasort_for_qsort(const void *a, const void *b)
+//{
+//    return alphasort((const struct dirent **)a, (const struct dirent **)b);
+//}
+
+enum exec_entry_type {
+    EXEC_TYPE_FILE,
+    EXEC_TYPE_DIR,
+};
+struct exec_entry {
+    enum exec_entry_type type;
+    char name[256];  // same as struct dirent
+};
+int exec_entry_sort_cmp(const void *a, const void *b)
 {
-    return alphasort((const struct dirent **)a, (const struct dirent **)b);
+    const struct exec_entry *enta = a, *entb = b;
+    return strcoll((const char *)enta->name, (const char *)entb->name);
 }
 
 // argument-less run
 //
 // like scandir, but customized for our use case, also without the need
 // to pass argv[0] via a global var to a scandir (*filter)
-// - also returns the whole dirent, not just a name
+// - also returns struct exec_entry, not just a name
 //
 // filter valid executables/dirs here, so that anything we pass to
 // execute() can be treated as an error if execution fails
-static int find_execs(struct dirent ***entlist, char *basename)
+static int find_execs(struct exec_entry ***entries, char *basename)
 {
     DIR *cwd = NULL;
     if ((cwd = opendir(".")) == NULL) {
@@ -53,22 +69,53 @@ static int find_execs(struct dirent ***entlist, char *basename)
     }
 
     int cwdfd = dirfd(cwd);
-    int subdir;
-    struct dirent *ent, **ents = NULL;
+    struct exec_entry **ents = NULL;
     size_t entcnt = 0;
-    while ((ent = readdir(cwd)) != NULL) {
+
+    struct dirent *dent;
+    while ((dent = readdir(cwd)) != NULL) {
         // skip hidden files, '.' and '..'
-        if (ent->d_name[0] == '.')
+        if (dent->d_name[0] == '.')
             continue;
 
         // skip current executable
-        if (strcmp(ent->d_name, basename) == 0)
+        if (strcmp(dent->d_name, basename) == 0)
             continue;
 
-        switch (ent->d_type) {
+        enum exec_entry_type enttype;
+
+#if defined(_DIRENT_HAVE_D_TYPE) && defined(DT_REG) && defined(DT_DIR)
+        switch (dent->d_type) {
+            case DT_REG:
+                enttype = EXEC_TYPE_FILE;
+                break;
             case DT_DIR:
+                enttype = EXEC_TYPE_DIR;
+                break;
+            default:
+                continue;
+        }
+#else
+        struct stat statbuf;
+        if ((fstatat(cwdfd, dent->d_name, &statbuf, 0)) == -1)
+            continue;
+        switch (statbuf.st_mode & S_IFMT) {
+            case S_IFREG:
+                enttype = EXEC_TYPE_FILE;
+                break;
+            case S_IFDIR:
+                enttype = EXEC_TYPE_DIR;
+                break;
+            default:
+                continue;
+        }
+#endif
+
+        int subdir;
+        switch (enttype) {
+            case EXEC_TYPE_DIR:
                 // look for basename in the directory
-                if ((subdir = openat(cwdfd, ent->d_name, O_DIRECTORY)) == -1) {
+                if ((subdir = openat(cwdfd, dent->d_name, O_DIRECTORY)) == -1) {
                     perror("openat");
                     continue;
                 }
@@ -78,31 +125,35 @@ static int find_execs(struct dirent ***entlist, char *basename)
                 }
                 close(subdir);
                 break;
-            case DT_REG:
+            case EXEC_TYPE_FILE:
                 // just check for executability
-                if (!is_exec(cwdfd, ent->d_name))
+                if (!is_exec(cwdfd, dent->d_name))
                     continue;
                 break;
             default:
                 continue;
         }
 
-        if ((ents = realloc_safe(ents, (entcnt+1)*sizeof(*ent))) == NULL) {
+        if ((ents = realloc_safe(ents, (entcnt+1)*sizeof(*ents))) == NULL) {
             perror("realloc");
             goto err;
         }
         entcnt++;
 
-        if ((ents[entcnt-1] = malloc(sizeof(*ent))) == NULL) {
+        struct exec_entry *ent;
+        if ((ent = malloc(sizeof(*ent))) == NULL) {
             perror("malloc");
             goto err;
         }
-        memcpy(ents[entcnt-1], ent, sizeof(*ent));
+        strncpy(ent->name, dent->d_name, sizeof(ent->name));
+        ent->type = enttype;
+
+        ents[entcnt-1] = ent;
     }
 
-    qsort(ents, entcnt, sizeof(ent), alphasort_for_qsort);
+    qsort(ents, entcnt, sizeof(*ents), exec_entry_sort_cmp);
     closedir(cwd);
-    *entlist = ents;
+    *entries = ents;
     return entcnt;
 
 err:
@@ -138,7 +189,7 @@ void execute(char *exe, char *basename, char **argv)
 // TODO some child function for the execve
 static void for_each_exec(char *basename)
 {
-    struct dirent **ents;
+    struct exec_entry **ents;
     int cnt;
 
     cnt = find_execs(&ents, basename);
@@ -146,7 +197,7 @@ static void for_each_exec(char *basename)
         return;
 
     for (int i = 0; i < cnt; i++) {
-        printf("%s\n", ents[i]->d_name);
+        printf("%s\n", ents[i]->name);
         free(ents[i]);
     }
     free(ents);
@@ -291,7 +342,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
         return 1;
-    //for_each_exec(argv[1]);
-    for_each_arg(basename(argv[0]), argc-1, argv+1);
+    for_each_exec(argv[1]);
+    //for_each_arg(basename(argv[0]), argc-1, argv+1);
     return 0;
 }
