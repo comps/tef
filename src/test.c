@@ -41,6 +41,9 @@ int alphasort_for_qsort(const void *a, const void *b)
 // like scandir, but customized for our use case, also without the need
 // to pass argv[0] via a global var to a scandir (*filter)
 // - also returns the whole dirent, not just a name
+//
+// filter valid executables/dirs here, so that anything we pass to
+// execute() can be treated as an error if execution fails
 static int find_execs(struct dirent ***entlist, char *basename)
 {
     DIR *cwd = NULL;
@@ -116,9 +119,16 @@ err:
 //   (to be used for argv[0]) and be terminated at [1] or later with NULL
 void execute(char *exe, char *basename, char **argv)
 {
-    (void)exe;
-    (void)basename;
-    (void)argv;
+    if (argv != NULL) {
+        printf("executing %s:", exe);
+        argv[0] = basename;
+        for (int i = 0; argv[i] != NULL; i++) {
+            printf(" %s", argv[i]);
+        }
+        putchar('\n');
+    } else {
+        printf("executing %s (no args)\n", exe);
+    }
 }
 
 // temporary, for debug
@@ -206,6 +216,8 @@ static char *sane_arg(char *a)
 static void for_each_arg(char *basename, int argc, char **argv)
 {
     char **merged;
+
+    // +2 is for argv[0] and terminating NULL ptr
     if ((merged = malloc((argc+2)*sizeof(argv))) == NULL) {
         perror("malloc");
         return;
@@ -218,8 +230,7 @@ static void for_each_arg(char *basename, int argc, char **argv)
     char *prefix = NULL;
     ptrdiff_t prefix_len = 0;
 
-    int i;
-    for (i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
         if (!sane)
             goto standalone;
@@ -229,7 +240,7 @@ static void for_each_arg(char *basename, int argc, char **argv)
             goto standalone;
 
         // if current arg doesn't match prefix (incl. '/' after it)
-        if (prefix && (strcmp(sane, prefix) != 0 || sane[prefix_len] != '/'))
+        if (prefix && (strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/'))
             goto standalone;
 
         // merge this arg
@@ -251,10 +262,8 @@ standalone:
         // process previously merged args
         if (prefix) {
             execute(prefix, basename, merged);
+            free(prefix);
             prefix = NULL;
-            // free strdup()'d args
-            for (int i = 1; merged[i] != NULL; i++)
-                free(merged[i]);
             merged_idx = 1;
             merged[merged_idx] = NULL;
         }
@@ -268,10 +277,12 @@ standalone:
         continue;
     }
 
+    // finish any merge-in-progress, execute it
+    if (prefix)
+        execute(prefix, basename, merged);
+
 err:
-    // free strdup()'d args
-    for (i = 1; merged[i] != NULL; i++)
-        free(merged[i]);
+    free(prefix);
     free(merged);
 }
 
@@ -280,6 +291,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
         return 1;
-    for_each_exec(argv[1]);
+    //for_each_exec(argv[1]);
+    for_each_arg(basename(argv[0]), argc-1, argv+1);
     return 0;
 }
