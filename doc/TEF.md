@@ -36,6 +36,11 @@ the current working directory (CWD):
 
 When called without CLI arguments, the behavior of the runner is undefined.
 
+// ^^^ revisit that, define it as 'runs maximum possible test set' or so,
+// the corner cases of ie. 'setup' vs 'run' executables and one running
+// the other because != basename(argv[0]) are .. corner cases, easy deviations
+// from the spec
+
 When called with arguments, the runner must execute exactly the files or
 directories specified by the arguments.
 

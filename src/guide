@@ -80,3 +80,6 @@
 - look for EINTR of every syscall used, make an INTR-safe wrapper
   for each one of them
   - alarm can interrupt anywhere
+
+- revisit dirent d_type, maybe re-do it as lstat calls
+  - POSIX doesn't even mention d_type in struct dirent, seems to be BSD
