@@ -39,6 +39,7 @@ static bool is_exec(int parentfd, char *name)
 //}
 
 enum exec_entry_type {
+    EXEC_TYPE_INVALID = 0,
     EXEC_TYPE_FILE,
     EXEC_TYPE_DIR,
 };
@@ -46,6 +47,23 @@ struct exec_entry {
     enum exec_entry_type type;
     char name[256];  // same as struct dirent
 };
+int fstatat_type(int dirfd, const char *pathname, enum exec_entry_type *type)
+{
+    struct stat statbuf;
+    if ((fstatat(dirfd, pathname, &statbuf, 0)) == -1)
+        return -1;
+    switch (statbuf.st_mode & S_IFMT) {
+        case S_IFREG:
+            *type = EXEC_TYPE_FILE;
+            break;
+        case S_IFDIR:
+            *type = EXEC_TYPE_DIR;
+            break;
+        default:
+            *type = EXEC_TYPE_INVALID;
+            break;
+    }
+}
 int exec_entry_sort_cmp(const void *a, const void *b)
 {
     const struct exec_entry *enta = a, *entb = b;
@@ -96,19 +114,11 @@ static int find_execs(struct exec_entry ***entries, char *basename)
                 continue;
         }
 #else
-        struct stat statbuf;
-        if ((fstatat(cwdfd, dent->d_name, &statbuf, 0)) == -1)
+        // error or invalid type
+        if (fstatat_type(cwdfd, dent->d_name, &enttype) == -1)
             continue;
-        switch (statbuf.st_mode & S_IFMT) {
-            case S_IFREG:
-                enttype = EXEC_TYPE_FILE;
-                break;
-            case S_IFDIR:
-                enttype = EXEC_TYPE_DIR;
-                break;
-            default:
-                continue;
-        }
+        if (enttype == EXEC_TYPE_INVALID)
+            continue;
 #endif
 
         int subdir;
@@ -168,17 +178,17 @@ err:
 // named after basename
 // - if argv is NULL, pass no args, else argv must have [0] allocated and unused
 //   (to be used for argv[0]) and be terminated at [1] or later with NULL
-void execute(char *exe, char *basename, char **argv)
+void execute(struct exec_entry *exe, char *basename, char **argv)
 {
     if (argv != NULL) {
-        printf("executing %s:", exe);
+        printf("executing %s:", exe->name);
         argv[0] = basename;
         for (int i = 0; argv[i] != NULL; i++) {
             printf(" %s", argv[i]);
         }
         putchar('\n');
     } else {
-        printf("executing %s (no args)\n", exe);
+        printf("executing %s (no args)\n", exe->name);
     }
 }
 
@@ -258,6 +268,33 @@ static char *sane_arg(char *a)
 //}
 
 
+// wrap execute(), resolve exe name to struct exec_entry
+void execute_unknown(int dirfd, char *exename, char *basename, char **argv)
+{
+    enum exec_entry_type type;
+
+    if (fstatat_type(dirfd, exename, &type) == -1) {
+        perror("fstatat");
+        return; // TODO: make execute return non-void
+    }
+
+    switch (type) {
+        // filename not a regular file or a directory
+        case EXEC_TYPE_INVALID:
+            fprintf(stderr, "invalid executable %s", exename);
+            return;
+        case EXEC_TYPE_FILE:
+        case EXEC_TYPE_DIR:
+            break;
+    }
+    struct exec_entry entry = {
+        .name = exename,
+        .type = type,
+    };
+    // TODO non-void return
+    execute(&entry, basename, argv);
+}
+
 
 // argument-given run
 // ...
@@ -312,7 +349,8 @@ static void for_each_arg(char *basename, int argc, char **argv)
 standalone:
         // process previously merged args
         if (prefix) {
-            execute(prefix, basename, merged);
+            //execute(prefix, basename, merged);
+            execute_unknown(AT_FDCWD, prefix, basename, merged);
             free(prefix);
             prefix = NULL;
             merged_idx = 1;
@@ -324,7 +362,8 @@ standalone:
         if (!sane)
             continue;
 
-        execute(sane, basename, NULL);
+        execute_unknown(AT_FDCWD, sane, basename, NULL);
+        //execute(sane, basename, NULL);
         continue;
     }
 
