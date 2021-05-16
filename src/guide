@@ -74,6 +74,15 @@
 
 
 
+- runner features / arguments - bools as unsigned int flags with #defines
+  - argv0: string
+  - parallel: bool (0)
+  - merge_args: bool (1)
+  - ignore_files: argv, NULL-terminated
+    - for skipping executables/dirs in cwd when running arg-less
+  - ..
+
+
 - warn that readdir(3) is used, which is generally thread-safe,
   but this is not guaranteed by POSIX.1
 
@@ -85,3 +94,21 @@
   - instead of creating logfile to be used by runner that called tef_mklog,
     provide writing to log automatically
   - could abstract TEF_DEBUG_OUTPUT functionality so runner doesn't have to care
+
+- bash builtin - try getenv on BASH_ARGV0 to avoid '-a $(basename $0)'
+  - bash 5.0 .. :/
+
+- write reasonable perror messages, prefix with 'tef: ', etc.
+
+- optimize with -O2
+
+- check fox max CLI length, split arguments across runner calls,
+  OR document that this is missing
+  - add this to TEF.md
+  - ACTUALLY this should never happen; we only pass args if parent (user)
+    gave us args and, in that case, all our args already must fit within
+    the limit, even if we don't merge
+
+- maybe don't pass **argv with reserved [0] and *argv0 to execute() separately,
+  maybe let the caller embed argv0 to *argv[0] .. ?
+
