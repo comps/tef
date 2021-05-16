@@ -1,1 +1,0 @@
-tef_report "$@"
