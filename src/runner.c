@@ -295,9 +295,6 @@ for_each_arg(int argc, char **argv, const struct tef_runner_opts *opts)
     //       call execute(), nothing fancy
     return state.failed;
 }
-// TODO: probably swap basename (here and in execute() calls) to
-//       some 'struct state', holding parallel job pids (or so),
-//       CLI-based configuration from user (how many max jobs), etc.
 static bool
 for_each_merged_arg(int argc, char **argv, const struct tef_runner_opts *opts)
 {
@@ -320,17 +317,28 @@ for_each_merged_arg(int argc, char **argv, const struct tef_runner_opts *opts)
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
         if (!sane)
-            goto standalone;
+            continue;
 
         char *slash = strchr(sane, '/');
-        if (!slash)
-            goto standalone;
 
-        // if current arg doesn't match prefix (incl. '/' after it)
-        if (prefix && (strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/'))
-            goto standalone;
+        // if there's merge ongoing
+        if (prefix) {
+            // if standalone arg is found or if prefix (incl. '/' after it) doesn't match
+            if (!slash || strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/') {
+                // finish merge; process previously merged args
+                execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
+                free(prefix);
+                prefix = NULL;
+                merged_idx = 1;
+                merged[merged_idx] = NULL;
+            }
+        }
 
-        // merge this arg
+        // standalone arg, just execute it, don't merge
+        if (!slash) {
+            execute(sane, EXEC_TYPE_UNKNOWN, NULL, opts->argv0, &state);
+            continue;
+        }
 
         // no merge in progress, start a new arglist
         if (!prefix) {
@@ -343,25 +351,6 @@ for_each_merged_arg(int argc, char **argv, const struct tef_runner_opts *opts)
         // appending to existing merge arglist
         merged[merged_idx] = sane+prefix_len+1;  // skip prefix + '/'
         merged[++merged_idx] = NULL;
-        continue;
-
-standalone:
-        // process previously merged args
-        if (prefix) {
-            execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
-            free(prefix);
-            prefix = NULL;
-            merged_idx = 1;
-            merged[merged_idx] = NULL;
-        }
-
-        // process current non-merge-able (standalone) arg
-
-        if (!sane)
-            continue;
-
-        execute(sane, EXEC_TYPE_UNKNOWN, NULL, opts->argv0, &state);
-        continue;
     }
 
     // finish any merge-in-progress, execute it
