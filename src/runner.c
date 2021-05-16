@@ -40,7 +40,7 @@ static int exec_entry_sort_cmp(const void *a, const void *b)
     return strcoll((const char *)enta->name, (const char *)entb->name);
 }
 static int
-fstatat_type(int dirfd, const char *pathname, enum exec_entry_type *type)
+fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type)
 {
     int ret;
     struct stat statbuf;
@@ -77,7 +77,7 @@ struct exec_state {
 //      - probably in parent chain somewhere, so we don't do it for every executable
 //    - some child function for the execve
 static void
-execute(const char *exe, enum exec_entry_type typehint, char **argv,
+execute(char *exe, enum exec_entry_type typehint, char **argv,
         char *basename, struct exec_state *state)
 {
     if (typehint == EXEC_TYPE_UNKNOWN) {
@@ -128,7 +128,7 @@ execute(const char *exe, enum exec_entry_type typehint, char **argv,
 //
 // filter valid executables/dirs here, so that anything we pass to
 // execute() can be treated as an error if execution fails
-static bool is_exec(int parentfd, const char *name)
+static bool is_exec(int parentfd, char *name)
 {
     int ret;
     if ((ret = faccessat(parentfd, name, X_OK, 0)) == -1) {
@@ -139,8 +139,7 @@ static bool is_exec(int parentfd, const char *name)
     return true;
 }
 static int
-find_execs(struct exec_entry ***entries, const char *basename,
-           char **ignored)
+find_execs(struct exec_entry ***entries, char *basename, char **ignored)
 {
     DIR *cwd = NULL;
     if ((cwd = opendir(".")) == NULL) {
@@ -245,7 +244,7 @@ err:
     closedir(cwd);
     return -1;
 }
-static bool for_each_exec(const struct tef_runner_opts *opts)
+static bool for_each_exec(struct tef_runner_opts *opts)
 {
     struct exec_entry **ents;
     int cnt;
@@ -268,7 +267,7 @@ static bool for_each_exec(const struct tef_runner_opts *opts)
 // argument-given run
 //
 
-static char *sane_arg(const char *a)
+static char *sane_arg(char *a)
 {
     while (*a == '/')
         a++;
@@ -285,10 +284,10 @@ static char *sane_arg(const char *a)
                 return NULL;
         }
     }
-    return (char *)a;
+    return a;
 }
 static bool
-for_each_arg(int argc, char **argv, const struct tef_runner_opts *opts)
+for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     struct exec_state state = { 0 };
     // TODO: simply iterate over argv, skip (continue) over !sane_arg(),
@@ -296,7 +295,7 @@ for_each_arg(int argc, char **argv, const struct tef_runner_opts *opts)
     return state.failed;
 }
 static bool
-for_each_merged_arg(int argc, char **argv, const struct tef_runner_opts *opts)
+for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     char **merged;
     struct exec_state state = { 0 };
