@@ -11,17 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef.h>
-#include "execute.h"
-
-// free the block if realloc fails
-static void *realloc_safe(void *ptr, size_t size)
-{
-    void *new = realloc(ptr, size);
-    if (new == NULL)
-        free(ptr);
-    return new;
-}
+#include "common.h"
 
 static int exec_entry_sort_cmp(const void *a, const void *b)
 {

@@ -11,27 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "execute.h"
-
-int fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type)
-{
-    int ret;
-    struct stat statbuf;
-    if ((ret = fstatat(dirfd, pathname, &statbuf, 0)) == -1)
-        return -1;
-    switch (statbuf.st_mode & S_IFMT) {
-        case S_IFREG:
-            *type = EXEC_TYPE_FILE;
-            break;
-        case S_IFDIR:
-            *type = EXEC_TYPE_DIR;
-            break;
-        default:
-            *type = EXEC_TYPE_INVALID;
-            break;
-    }
-    return ret;
-}
+#include "common.h"
 
 // execute an executable file in CWD or a directory with an executable file
 // named after basename

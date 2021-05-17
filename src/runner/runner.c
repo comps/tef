@@ -2,15 +2,7 @@
 
 //#define _POSIX_C_SOURCE 200809L
 
-#include <tef.h>
-
-extern bool
-for_each_arg(int argc, char **argv, struct tef_runner_opts *opts);
-
-extern bool
-for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts);
-
-extern bool for_each_exec(struct tef_runner_opts *opts);
+#include "common.h"
 
 bool tef_runner(int argc, char **argv, struct tef_runner_opts *opts)
 {

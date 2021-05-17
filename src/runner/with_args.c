@@ -11,10 +11,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef.h>
-#include "execute.h"
+#include "common.h"
 
-static char *sane_arg(char *a)
+static char *
+sane_arg(char *a)
 {
     while (*a == '/')
         a++;
