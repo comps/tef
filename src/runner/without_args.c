@@ -45,6 +45,7 @@ static bool is_exec(int parentfd, char *name)
     }
     return true;
 }
+
 static int
 find_execs(struct exec_entry ***entries, char *basename, char **ignored)
 {
@@ -151,6 +152,7 @@ err:
     closedir(cwd);
     return -1;
 }
+
 bool for_each_exec(struct tef_runner_opts *opts)
 {
     struct exec_entry **ents;

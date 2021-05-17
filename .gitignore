@@ -2,6 +2,6 @@ bin/*
 
 **/logs
 
-src/runner
-src/report
-src/mklog
+#src/runner
+#src/report
+#src/mklog

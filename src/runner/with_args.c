@@ -33,6 +33,7 @@ static char *sane_arg(char *a)
     }
     return a;
 }
+
 bool
 for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
@@ -41,6 +42,8 @@ for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
     //       call execute(), nothing fancy
     return state.failed;
 }
+
+
 bool
 for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
@@ -62,8 +65,10 @@ for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
-        if (!sane)
-            continue;
+        if (!sane) {
+            fprintf(stderr, "insane arg: %s, aborting\n", argv[i]);
+            goto err;
+        }
 
         char *slash = strchr(sane, '/');
 
@@ -106,6 +111,8 @@ for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
     return state.failed;
 
 err:
+    if (prefix)
+        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
     free(prefix);
     free(merged);
     return false;
