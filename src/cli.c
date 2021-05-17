@@ -13,62 +13,63 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if 0
+//#include <tef.h>
+#include "runner/common.h"
+
 static void print_help(void)
 {
     fprintf(stderr,
             "bla bla\n");
 }
 
-int tef_runner(int argc, char **argv, unsigned int flags, char **ignore_files)
+int main(int argc, char **argv)
 {
-    if (argc < 2)
-        return 1;
+    struct tef_runner_opts opts = { 0 };
 
-    while ((int c = getopt(argc, argv, "+:f:t:s:n:b:h")) != -1) {
+    //if (argc < 2)
+    //    return 1;
+    int ignored_cnt = 1;  // terminating NULL
+
+    int c;
+    while ((c = getopt(argc, argv, "a:j:i:nh")) != -1) {
         switch (c) {
-            case 'f':
-                /* source offset */
-                offset_from = strtoullx(optarg);
-                args_read |= (1<<0);
+            case 'a':
+                opts.argv0 = optarg;
                 break;
-            case 't':
-                /* destination offset */
-                offset_to = strtoullx(optarg);
-                args_read |= (1<<1);
+            case 'j':
+                opts.jobs = atoi(optarg);
                 break;
-            case 'b':
-                /* block size */
-                block_size = strtoullx(optarg);
-                if (!errno && block_size < 1) {
-                    fprintf(stderr, "Block size needs to be >= 1\n");
-                    return 1;
-                }
+            case 'i':
+                ignored_cnt++;
+                opts.ignore_files =
+                    realloc_safe(opts.ignore_files, sizeof(char**)*ignored_cnt);
+                opts.ignore_files[ignored_cnt-2] = optarg;
+                opts.ignore_files[ignored_cnt-1] = NULL;
+                break;
+            case 'n':
+                opts.nomerge_args = true;
                 break;
             case 'h':
                 print_help();
                 return 0;
             case ':':
-                // TODO missing argument to opt
-                return 1;
             case '?':
-                // TODO other error
                 return 1;
         }
 
         /* one of the strtoullx calls failed */
-        if (errno)
-            exit(EXIT_FAILURE);
+        //if (errno)
+        //    exit(EXIT_FAILURE);
     }
 
-    //for_each_exec(argv[1]);
-    for_each_arg(basename(argv[0]), argc-1, argv+1);
-    return 0;
+    if (!opts.argv0)
+        opts.argv0 = basename(argv[0]);
+
+    //printf("%s // %d : %d\n", argv[optind], optind, argc);
+    return !tef_runner(argc-optind, argv+optind, &opts);
 }
-#endif
 
-#include <tef.h>
-
+#if 0
 int main(int argc, char **argv)
 {
     struct tef_runner_opts opts = { 0 };
@@ -82,3 +83,4 @@ int main(int argc, char **argv)
 
     return !tef_runner(argc-1, argv+1, &opts);
 }
+#endif

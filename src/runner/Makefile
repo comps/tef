@@ -1,9 +1,9 @@
 all: runner.a
 
-runner.a: runner.o execute.o with_args.o without_args.o
+runner.a: runner.o common.o execute.o with_args.o without_args.o
 	ar -rcs $@ $^
 
-CFLAGS += -Wall -I../include
+CFLAGS += -Wall -I../include -g
 
 runner.o: runner.c
 common.o: common.c
