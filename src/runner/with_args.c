@@ -38,11 +38,38 @@ bool
 for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     struct exec_state state = { 0 };
-    // TODO: simply iterate over argv, skip (continue) over !sane_arg(),
-    //       call execute(), nothing fancy
+
+    for (int i = 0; i < argc; i++) {
+        char *sane = sane_arg(argv[i]);
+        if (!sane) {
+            fprintf(stderr, "insane arg: %s\n", argv[i]);
+            continue;
+        }
+
+        char *slash = strchr(sane, '/');
+
+        // standalone arg, just execute it without args
+        if (!slash) {
+            execute(sane, EXEC_TYPE_UNKNOWN, NULL, opts->argv0, &state);
+            continue;
+        }
+
+        ptrdiff_t prefix_len = slash-sane;
+        char *prefix = strndup(sane, prefix_len);
+        if (prefix == NULL)
+            return false;
+
+        // [0] is execute-reserved for argv[0],
+        // [2] is NULL terminator
+        char *arg[3] = { NULL };
+        arg[1] = sane+prefix_len+1;  // skip prefix + '/'
+        execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts->argv0, &state);
+
+        free(prefix);
+    }
+
     return state.failed;
 }
-
 
 bool
 for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
@@ -65,17 +92,17 @@ for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
-        if (!sane) {
-            fprintf(stderr, "insane arg: %s, aborting\n", argv[i]);
-            goto err;
-        }
 
-        char *slash = strchr(sane, '/');
+        char *slash = NULL;
+        if (sane)
+           slash = strchr(sane, '/');
 
         // if there's merge ongoing
         if (prefix) {
-            // if standalone arg is found or if prefix (incl. '/' after it) doesn't match
-            if (!slash || strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/') {
+            // if arg is not sane (implied by !slash),
+            // or if it is standalone (no slash)
+            // or if prefix (incl. '/' after it) doesn't match
+            if (!slash || (sane && (strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/'))) {
                 // finish merge; process previously merged args
                 execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
                 free(prefix);
@@ -83,6 +110,11 @@ for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
                 merged_idx = 1;
                 merged[merged_idx] = NULL;
             }
+        }
+
+        if (!sane) {
+            fprintf(stderr, "insane arg: %s\n", argv[i]);
+            continue;
         }
 
         // standalone arg, just execute it, don't merge

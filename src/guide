@@ -102,6 +102,8 @@
 
 - optimize with -O2
 
+- clean up includes
+
 - check fox max CLI length, split arguments across runner calls,
   OR document that this is missing
   - add this to TEF.md
@@ -109,12 +111,13 @@
     gave us args and, in that case, all our args already must fit within
     the limit, even if we don't merge
 
-- maybe don't pass **argv with reserved [0] and *argv0 to execute() separately,
-  maybe let the caller embed argv0 to *argv[0] .. ?
-
 - adjust TEF.md to say that invalid (insane) arg must stop arg merging and the
   runner with exit with non-0 without running anything beyond the invalid arg
   **or running anything beyond the bad arg**
   - this greatly simplifies merging algo
+  - what about missing executables? .. permission denied?
+    - should a runner continue (skip bad) or abort completely ?
+  --> leave as-is, skip insane args, make them abort merging, don't exit
+
 
 
