@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
+#if 0
 static void print_help(void)
 {
     fprintf(stderr,
@@ -64,4 +64,21 @@ int tef_runner(int argc, char **argv, unsigned int flags, char **ignore_files)
     //for_each_exec(argv[1]);
     for_each_arg(basename(argv[0]), argc-1, argv+1);
     return 0;
+}
+#endif
+
+#include <tef.h>
+
+int main(int argc, char **argv)
+{
+    struct tef_runner_opts opts = { 0 };
+
+    opts.argv0 = basename(argv[0]);
+    //char ign[2][20] = { "zanother", NULL };
+    char *ign[2] = { 0 };
+    //ign[0] = "zanother";
+    ign[1] = NULL;
+    opts.ignore_files = ign;
+
+    return !tef_runner(argc-1, argv+1, &opts);
 }

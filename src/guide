@@ -112,3 +112,9 @@
 - maybe don't pass **argv with reserved [0] and *argv0 to execute() separately,
   maybe let the caller embed argv0 to *argv[0] .. ?
 
+- adjust TEF.md to say that invalid (insane) arg must stop arg merging and the
+  runner with exit with non-0 without running anything beyond the invalid arg
+  **or running anything beyond the bad arg**
+  - this greatly simplifies merging algo
+
+
