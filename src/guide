@@ -119,5 +119,9 @@
     - should a runner continue (skip bad) or abort completely ?
   --> leave as-is, skip insane args, make them abort merging, don't exit
 
+  --> document/clarify that runner should, in all cases, skip the failing
+      executable, treat it as an error (finish with non-0 in the end),
+      and continue on
+
 
 

@@ -68,19 +68,3 @@ int main(int argc, char **argv)
     //printf("%s // %d : %d\n", argv[optind], optind, argc);
     return !tef_runner(argc-optind, argv+optind, &opts);
 }
-
-#if 0
-int main(int argc, char **argv)
-{
-    struct tef_runner_opts opts = { 0 };
-
-    opts.argv0 = basename(argv[0]);
-    //char ign[2][20] = { "zanother", NULL };
-    char *ign[2] = { 0 };
-    //ign[0] = "zanother";
-    ign[1] = NULL;
-    opts.ignore_files = ign;
-
-    return !tef_runner(argc-1, argv+1, &opts);
-}
-#endif
