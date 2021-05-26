@@ -4,6 +4,7 @@
 
 #include "common.h"
 
+// true if everything PASSed, false on error or FAIL
 bool tef_runner(int argc, char **argv, struct tef_runner_opts *opts)
 {
     if (argc <= 0)

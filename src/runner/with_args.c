@@ -13,8 +13,7 @@
 
 #include "common.h"
 
-static char *
-sane_arg(char *a)
+static char *sane_arg(char *a)
 {
     while (*a == '/')
         a++;
@@ -34,8 +33,7 @@ sane_arg(char *a)
     return a;
 }
 
-bool
-for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
+bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     struct exec_state state = { 0 };
 
@@ -71,8 +69,7 @@ for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
     return state.failed;
 }
 
-bool
-for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
+bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     char **merged;
     struct exec_state state = { 0 };

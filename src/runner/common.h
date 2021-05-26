@@ -1,8 +1,7 @@
 #include <stddef.h>
 #include <tef.h>
 
-extern void *
-realloc_safe(void *ptr, size_t size);
+extern void *realloc_safe(void *ptr, size_t size);
 
 enum exec_entry_type {
     EXEC_TYPE_UNKNOWN,
@@ -16,8 +15,7 @@ struct exec_entry {
     char name[256];  // same as struct dirent
 };
 
-extern int
-fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type);
+extern int fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type);
 
 // used across repeated execute() calls to track state
 struct exec_state {
@@ -35,5 +33,4 @@ for_each_arg(int argc, char **argv, struct tef_runner_opts *opts);
 extern bool
 for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts);
 
-extern bool
-for_each_exec(struct tef_runner_opts *opts);
+extern bool for_each_exec(struct tef_runner_opts *opts);

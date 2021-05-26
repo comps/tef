@@ -13,8 +13,7 @@
 #include "common.h"
 
 // free the block if realloc fails
-void *
-realloc_safe(void *ptr, size_t size)
+void *realloc_safe(void *ptr, size_t size)
 {
     void *new = realloc(ptr, size);
     if (new == NULL)
@@ -22,8 +21,7 @@ realloc_safe(void *ptr, size_t size)
     return new;
 }
 
-int
-fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type)
+int fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type)
 {
     int ret;
     struct stat statbuf;

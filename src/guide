@@ -89,6 +89,7 @@
 - look for EINTR of every syscall used, make an INTR-safe wrapper
   for each one of them
   - alarm can interrupt anywhere
+  - incl. outside runner, like F_SETLKW in tef-report
 
 - pipe support for tef_mklog (?)
   - instead of creating logfile to be used by runner that called tef_mklog,
@@ -123,5 +124,8 @@
       executable, treat it as an error (finish with non-0 in the end),
       and continue on
 
+- adjust TEF.md w.r.t. terminal detection
+  - don't check terminal colors, it's really nonstandard
+  - simply: if terminal, assume it supports >=16 colors, else no colors
 
 
