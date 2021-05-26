@@ -48,22 +48,12 @@ static bool is_terminal(int fd)
     return !tcgetattr(fd, &tos);
 }
 
-// TODO: write:
-//        - coloring prefix
-//        - the actual status
-//        - coloring postfix
-//        - space
-//        - TEF_PREFIX
-//        - newline
-//       all in one writev(2), it is POSIX
-
-
 // TODO: maybe rewrite this to writev(2), though dealing with its partial writes
 //       (less than full bytes returned) across buffers would be really ugly
-ssize_t write_safe(int fd, const void *buf, size_t count)
+static ssize_t write_safe(int fd, const void *buf, size_t count)
 {
-    size_t rc, written = 0;
-    while (written < count) {
+    ssize_t rc, written = 0;
+    while ((size_t)written < count) {
         if ((rc = write(fd, buf, count)) == -1) {
             if (errno == EINTR)
                 continue;
@@ -73,16 +63,26 @@ ssize_t write_safe(int fd, const void *buf, size_t count)
     }
     return written;
 }
+static ssize_t write_safe_locked(int fd, const void *buf, size_t count)
+{
+    int write_errno;
+    ssize_t rc;
+    if (lock(fd) == -1)
+        return -1;
+    rc = write_safe(fd, buf, count);
+    write_errno = errno;
+    unlock(fd);
+    errno = write_errno;
+    return rc;
+}
 
-#define CLPASS "\e[1;32m"
-#define CLFAIL "\e[1;31m"
-#define CLRUN  "\e[1;34m"
-#define CLMARK "\e[1;90m"
+#define CLGREEN "\e[1;32m"
+#define CLRED   "\e[1;31m"
+#define CLBLUE  "\e[1;34m"
+#define CLGRAY  "\e[1;90m"
 #define CLRESET "\e[0m"
 // avoid strlen
-//#define CLLEN 7
-#define CLLEN sizeof(CLPASS)-1
-//#define CLRESETLEN 4
+#define CLLEN sizeof(CLGREEN)-1
 #define CLRESETLEN sizeof(CLRESET)-1
 
 static void *memcpy_append(void *dest, void *src, size_t n)
@@ -136,31 +136,77 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
     return line;
 }
 
+// status match, pretty name, color
+static char *status_colors[][3] = {
+    { "PASS", "PASS", CLGREEN },
+    { "FAIL", "FAIL", CLRED   },
+    { "RUN",  "RUN ", CLBLUE  },
+    { "MARK", "MARK", CLGRAY  },
+};
+#define STATUSLEN sizeof(status_colors)/sizeof(*status_colors)
+
 bool tef_report(char *status, char *name)
 {
-    size_t len;
-    char *line;
-    if (is_terminal(0)) {
-        line = format_line(status, name, &len, CLPASS);
-        if (line) {
-            write(1, line, len);
-            free(line);
+    char *status_pretty = status;
+    char *color = NULL;
+
+    // TODO: perrors for all 'return false' in this func
+
+    // if fd 0 is terminal, look up status color
+    // if not or if status is unknown, color remains NULL --> no color codes
+    bool isterm = is_terminal(0);
+    if (isterm) {
+        for (unsigned long i = 0; i < STATUSLEN; i++) {
+            if (strcmp(status_colors[i][0], status)==0) {
+                status_pretty = status_colors[i][1];
+                color = status_colors[i][2];
+                break;
+            }
         }
-        // color printout for known statuses
-        // else black&white printout for unknown ones
-    } else {
-        // black&white printout
     }
 
+    // write to fd 0
+    size_t len;
+    char *line = format_line(status_pretty, name, &len, color);
+    if (!line)
+        goto err;
+
+    if (write_safe_locked(0, line, len) == -1)
+        goto err;
+
+    // duplicate write to TEF_RESULTS_FD
+    char *tef_results_fd = getenv("TEF_RESULTS_FD");
+    if (tef_results_fd) {
+        int fd = atoi(tef_results_fd);
+        if (fd > 0) {
+            if (!color) {
+                // black'n'white line already formatted
+                if (write_safe_locked(fd, line, len) == -1)
+                    goto err;
+            } else {
+                free(line);
+                line = format_line(status_pretty, name, &len, NULL);
+                if (!line)
+                    goto err;
+                if (write_safe_locked(fd, line, len) == -1)
+                    goto err;
+            }
+        }
+    }
+
+    free(line);
     return true;
+
+err:
+    free(line);
+    return false;
 }
 
 int main(int argc, char **argv)
 {
     if (argc < 3)
         return 1;
-    tef_report(argv[1], argv[2]);
-    return 0;
+    return !tef_report(argv[1], argv[2]);
 }
 
 
