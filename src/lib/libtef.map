@@ -1,0 +1,11 @@
+VERS_0.1 {
+  global: tef_runner; tef_report;
+  local: *;
+};
+
+/*
+VERS_0.2 {
+} VERS_0.1;
+VERS_0.7 {
+} VERS_0.2;
+*/

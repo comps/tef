@@ -14,7 +14,7 @@
 #include <fcntl.h>
 
 //#include <tef.h>
-#include "runner/common.h"
+#include "../runner/common.h"
 
 static void print_help(void)
 {

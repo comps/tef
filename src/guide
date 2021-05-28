@@ -128,4 +128,25 @@
   - don't check terminal colors, it's really nonstandard
   - simply: if terminal, assume it supports >=16 colors, else no colors
 
+- re-do fd0 handling in TEF.md
+  - use stdout instead of fd 0, rely on executables not being too noisy,
+    maybe mention that this stdout result reporting may be unrealiable
+    for machine parsing (due to possibly noisy execs)
+  - leave TEF_RESULTS_FD as-is, color-less, for reliable reporting
+  - when executing, redirect only stderr to log, leave stdout on console
+
+- add to TEF.md a section mentioning RFC2119 (must, should, etc. language)
+  - Background & Rationale
+  - The Core Idea
+    - any executable can be a runner
+  - Argument-less and argument-given run
+    - path specification, examples, path merging
+  - ...
+  - Big "examples.md" document
+    - passing parameters to executable via a trailing /something
+    - one executable reporting multiple results
+    - virtual hierarchies, LTP, ...
+    - writing custom runners using the building blocks
+      - ie. runners that always skip 'setup' 'run' 'cleanup' minus their own
+        argv0
 

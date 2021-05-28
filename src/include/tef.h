@@ -8,3 +8,4 @@ struct tef_runner_opts {
 };
 
 extern bool tef_runner(int argc, char **argv, struct tef_runner_opts *opts);
+extern bool tef_report(char *status, char *name);
