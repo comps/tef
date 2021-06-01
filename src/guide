@@ -1,76 +1,12 @@
 
-- result reporting
-  - sanitization of test name (escape special chars, replace newline, etc.)
-  - fd0 locking
-  - terminal detection, colors
-  - TEF_RESULTS_FD
-
 - log creation
   - rotation
   - TEF_LOGS
-
-- path normalization
-  - absolute to relative
-  - never above CWD
-  - sanitization
 
 - MARK result
   - done using alarm(2)
   - make sure any other code is interrupt-safe (ie. waitpid) and re-tries what it was doing
     if interrupted by a signal
-
-
-# argument-given run:
-
-- argument parsing, coalescing (merging)
-  - fairly easy, we care only whether subsequent args share the same toplevel
-    - /shared/a/dontcare , /shared/b/dontcare  -->  run /shared with a/dontcare b/dontcare
-    - we really need only int index for the first '/' (path normalization cuts off leading root '/')
-  - implementation non-trivial, but cleanly possible, copying out elements to a new argv array
-  - 'run entry' is called for each argument (or collection of merged ones), any extra arguments passed
-- practical implementation
-  - save starting index
-    - also save ptr to the current sanitized arg - this will be null-terminated later
-      and this ptr will represent the shared prefix
-  - iterate through arguments
-    - compare previous and current
-      - use strchr, replace found '/' with '\0' because we'll be passing the second portion later
-        - or not, because we can't tell if there's anything valid beyond that '\0',
-          ie. if there was never a '/' (last path portion of the arg)
-      - feel free to sanitize in place, argv is freely modifiable
-        - ie. advance each arg to after the '/', so each arg is directly usable for execve later
-    - if they match, advance to the next arg
-    - if they don't match
-      - use (current idx minus start idx)
-      - do fork
-      - terminate the range with NULL
-        - since the memory is not shared with parent, this is fine (we don't lose next arg in parent)
-        - also, this is safe for the last arg as there's always a NULL element in argv after last arg
-      - do execve
-        - use the initial saved ptr at the beginning as directory-to-execute
-          - do normal dir->basename runner lookup
-        - use processed array range as arguments
-
-# both run types
-
-- run entry
-  - receives any arguments for the entry
-  - receives one filename (result of a scandir)
-  - if entry is dir
-    - look for basename(argv[0]) in the dir, execute it, pass args, fail if cannot
-  - else
-    - execute the file, pass args, fail if cannot execute
-
-- execute entry
-  - always takes executable file from 'run entry', takes arguments
-  - does the actual fork + execve, .. or clone(2)
-  - gets passed (from parent chain) a list of child pids, to which it adds the forked pid
-  - waits (via wait(2)) until any one child exited, records return value to state passed via parent chain
-    - probably keep some parent-passed state of int of running jobs
-    - before executing anything, do waitpid(2) and collect any zombies, decrementing the jobs cnt
-    - right after execution, increment nr. of jobs by 1
-    - after execution, check if nr. of jobs is >= max nr of jobs, .. if so, do wait(2) for any pid
-
 
 
 
@@ -85,11 +21,17 @@
 
 - warn that readdir(3) is used, which is generally thread-safe,
   but this is not guaranteed by POSIX.1
+  - also document thread-safety for all 3 API functions
+  - ie. runner is generally thread safe, but
+    - writes to stdout, locked by F_WRLCK
+    - writes to stderr on error, unsafely (not locked)
+    - manages forks without PID tracking, so DO NOT start any background
+      forks that may exit before the runner call finishes
 
 - look for EINTR of every syscall used, make an INTR-safe wrapper
   for each one of them
   - alarm can interrupt anywhere
-  - incl. outside runner, like F_SETLKW in tef-report
+  - incl. waitpid in runner
 
 - pipe support for tef_mklog (?)
   - instead of creating logfile to be used by runner that called tef_mklog,
@@ -161,3 +103,11 @@
     - if merging is disabled, run multiple jobs even for the same exec
     - if merging is enabled, run one job with multiple args for the one exec
 
+- redo bools as integers
+  - probably better for ABI
+  - also return -1 on error
+
+- rewrite realloc_safe to take void **ptr to be modified in-place
+  - return either the new ptr on success, or NULL on fail
+  - caller can then choose to free the passed ptr on fail
+    or continue on without new element added

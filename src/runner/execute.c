@@ -15,17 +15,11 @@
 
 // execute an executable file in CWD or a directory with an executable file
 // named after basename
-// - if argv is NULL, pass no args, else argv must have [0] allocated and unused
-//   (to be used for argv[0]) and be terminated at [1] or later with NULL
-// TODO:
-//    - execution logic - it needs a big 'if' between directory ents and CWD ents
-//      as the directory ones will need chdir, etc.
-//    - environment variable export (TEF_LOGS, etc.) before any forking/execution
-//      - probably in parent chain somewhere, so we don't do it for every executable
-//    - some child function for the execve
+// - argv must have [0] allocated and unused (to be used for argv[0])
+//   and be terminated at [1] or later with NULL
 void
 execute(char *exe, enum exec_entry_type typehint, char **argv,
-        char *basename, struct exec_state *state)
+        struct tef_runner_opts *opts, struct exec_state *state)
 {
     if (typehint == EXEC_TYPE_UNKNOWN) {
         if (fstatat_type(AT_FDCWD, exe, &typehint) == -1) {
@@ -35,33 +29,49 @@ execute(char *exe, enum exec_entry_type typehint, char **argv,
         }
     }
 
+    // prepare env, TEF_LOGS, TEF_PREFIX
+
+    // reap any zombies, waitpid(-1, &wstatus, WNOHANG)
+    // - and process their exit code, potentially setting state->failed=true
+    // - decrement state->running_jobs for each one reaped
+
+    // use fork, clone is linux only
+
+    char *basename = opts->argv0;
+
     switch (typehint) {
         case EXEC_TYPE_FILE:
-            if (argv != NULL) {
-                printf("executing file %s:", exe);
-                argv[0] = basename;
-                for (int i = 0; argv[i] != NULL; i++) {
-                    printf(" %s", argv[i]);
-                }
-                putchar('\n');
-            } else {
-                printf("executing file %s (no args)\n", exe);
+            argv[0] = exe;
+            //debug
+            printf("executing file %s:", exe);
+            for (int i = 0; argv[i] != NULL; i++) {
+                printf(" %s", argv[i]);
             }
+            putchar('\n');
+            //debug end
             break;
         case EXEC_TYPE_DIR:
-            if (argv != NULL) {
-                printf("executing dir %s:", exe);
-                argv[0] = basename;
-                for (int i = 0; argv[i] != NULL; i++) {
-                    printf(" %s", argv[i]);
-                }
-                putchar('\n');
-            } else {
-                printf("executing dir %s (no args)\n", exe);
+            argv[0] = basename;
+            printf("executing dir %s:", exe);
+            //debug
+            for (int i = 0; argv[i] != NULL; i++) {
+                printf(" %s", argv[i]);
             }
+            putchar('\n');
+            //debug end
             break;
         default:
             fprintf(stderr, "cannot execute non-exec non-dir\n");
             return;
     }
+
+    int max_jobs = opts->jobs;
+
+    (void)max_jobs;
+
+    // if execution succeded (not returned yet):
+    // - increase state->running_jobs by 1
+    // - if state->running_jobs is >= max_jobs
+    //   - wait for any one child: waitpid(-1, &wstatus, 0)
+    //     - and process status, maybe set state->failed=true
 }

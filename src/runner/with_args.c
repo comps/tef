@@ -37,6 +37,11 @@ bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     struct exec_state state = { 0 };
 
+    // [0] is execute-reserved for argv[0],
+    // [1] is the one non-merged arg
+    // [2] is NULL terminator
+    char *arg[3] = { NULL };
+
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
         if (!sane) {
@@ -48,7 +53,8 @@ bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
         // standalone arg, just execute it without args
         if (!slash) {
-            execute(sane, EXEC_TYPE_UNKNOWN, NULL, opts->argv0, &state);
+            arg[1] = NULL;
+            execute(sane, EXEC_TYPE_UNKNOWN, arg, opts, &state);
             continue;
         }
 
@@ -57,11 +63,8 @@ bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
         if (prefix == NULL)
             return false;
 
-        // [0] is execute-reserved for argv[0],
-        // [2] is NULL terminator
-        char *arg[3] = { NULL };
         arg[1] = sane+prefix_len+1;  // skip prefix + '/'
-        execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts->argv0, &state);
+        execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts, &state);
 
         free(prefix);
     }
@@ -101,7 +104,7 @@ bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
             // or if prefix (incl. '/' after it) doesn't match
             if (!slash || (sane && (strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/'))) {
                 // finish merge; process previously merged args
-                execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
+                execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
                 free(prefix);
                 prefix = NULL;
                 merged_idx = 1;
@@ -116,7 +119,7 @@ bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
         // standalone arg, just execute it, don't merge
         if (!slash) {
-            execute(sane, EXEC_TYPE_UNKNOWN, NULL, opts->argv0, &state);
+            execute(sane, EXEC_TYPE_UNKNOWN, merged, opts, &state);
             continue;
         }
 
@@ -135,13 +138,13 @@ bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
     // finish any merge-in-progress, execute it
     if (prefix)
-        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
+        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
 
     return state.failed;
 
 err:
     if (prefix)
-        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts->argv0, &state);
+        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
     free(prefix);
     free(merged);
     return false;

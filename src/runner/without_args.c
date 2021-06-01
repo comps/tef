@@ -153,8 +153,9 @@ bool for_each_exec(struct tef_runner_opts *opts)
     if (cnt == -1)
         return false;
 
+    char *argv[2] = { NULL };
     for (int i = 0; i < cnt; i++) {
-        execute(ents[i]->name, ents[i]->type, NULL, opts->argv0, &state);
+        execute(ents[i]->name, ents[i]->type, argv, opts, &state);
         free(ents[i]);
     }
     free(ents);

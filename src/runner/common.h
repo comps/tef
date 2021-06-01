@@ -20,12 +20,12 @@ extern int fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type);
 // used across repeated execute() calls to track state
 struct exec_state {
     bool failed;
-    unsigned int running_jobs;
+    int running_jobs;
 };
 
 extern void
 execute(char *exe, enum exec_entry_type typehint, char **argv,
-        char *basename, struct exec_state *state);
+        struct tef_runner_opts *opts, struct exec_state *state);
 
 extern bool
 for_each_arg(int argc, char **argv, struct tef_runner_opts *opts);
