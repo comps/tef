@@ -148,7 +148,8 @@ static char *status_colors[][3] = {
 // don't use STDOUT_FILENO as the standard specifies numbers
 #define TERMINAL_FD 1
 
-bool tef_report(char *status, char *name)
+__asm__(".symver tef_report_v0, tef_report@@VERS_0");
+bool tef_report_v0(char *status, char *name)
 {
     char *status_pretty = status;
     char *color = NULL;

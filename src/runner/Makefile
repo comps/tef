@@ -4,7 +4,7 @@ all: runner.a
 runner.a: runner.o common.o execute.o with_args.o without_args.o
 	ar -rcs $@ $^
 
-#CFLAGS += -Wall -I.. -g
+CFLAGS += -I../include -fPIC -Wall -g
 
 runner.o: runner.c
 common.o: common.c

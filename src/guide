@@ -101,7 +101,7 @@
 
 - write reasonable perror messages, prefix with 'tef: ', etc.
 
-- optimize with -O2
+- optimize with -O2 and add LTO
 
 - clean up includes
 
@@ -134,6 +134,7 @@
     for machine parsing (due to possibly noisy execs)
   - leave TEF_RESULTS_FD as-is, color-less, for reliable reporting
   - when executing, redirect only stderr to log, leave stdout on console
+  - TODO fix 'LOOP_FD' hacks in ospp-kickstart-test-suite
 
 - add to TEF.md a section mentioning RFC2119 (must, should, etc. language)
   - Background & Rationale
@@ -149,4 +150,14 @@
     - writing custom runners using the building blocks
       - ie. runners that always skip 'setup' 'run' 'cleanup' minus their own
         argv0
+
+- note for parallel execution - what about argument merging?
+  - should 'a/b a/c' run a twice wi 'b' and 'c' ?
+  - should merging be always disabled for parallel exec?
+  - should a new parallel job start only if the currently-examined
+    executable is != from the already running?
+    - would limit each exec to only one instance
+  - can we combine them?
+    - if merging is disabled, run multiple jobs even for the same exec
+    - if merging is enabled, run one job with multiple args for the one exec
 

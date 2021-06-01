@@ -2,8 +2,8 @@
 all: libtef.so
 
 # GNU LD
-libtef.so: ../runner/runner.a ../report/report.a
-	$(CC) -shared -fPIC -Wl,--version-script=libtef.map -o $@ $<
+libtef.so: ../runner/*.o ../report/*.o
+	$(CC) -shared -fPIC -Wl,--version-script=libtef.map -o $@ $^
 
 .PHONY: clean
 clean:

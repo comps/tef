@@ -1,4 +1,3 @@
-export CFLAGS += -I$(PWD)/include -Wall -g
 
 #runner/runner.a:
 #	$(MAKE) -C runner
@@ -8,21 +7,21 @@ export CFLAGS += -I$(PWD)/include -Wall -g
 #	$(MAKE) -C cli
 
 .PHONY: all
-all: cli lib
+all: lib cli
 
-.PHONY: runner report cli lib
+.PHONY: runner report lib cli
 runner:
 	@$(MAKE) -C runner
 report:
 	@$(MAKE) -C report
-cli: runner report
-	@$(MAKE) -C cli
 lib: runner report
 	@$(MAKE) -C lib
+cli: lib
+	@$(MAKE) -C cli
 
 .PHONY: clean
 clean:
 	@$(MAKE) -C runner clean
 	@$(MAKE) -C report clean
-	@$(MAKE) -C cli clean
 	@$(MAKE) -C lib clean
+	@$(MAKE) -C cli clean

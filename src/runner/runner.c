@@ -5,7 +5,8 @@
 #include "common.h"
 
 // true if everything PASSed, false on error or FAIL
-bool tef_runner(int argc, char **argv, struct tef_runner_opts *opts)
+__asm__(".symver tef_runner_v0, tef_runner@@VERS_0");
+bool tef_runner_v0(int argc, char **argv, struct tef_runner_opts *opts)
 {
     if (argc <= 0)
         return for_each_exec(opts);
