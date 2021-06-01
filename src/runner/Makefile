@@ -1,8 +1,5 @@
 .PHONY: all
-all: runner.a
-
-runner.a: runner.o common.o execute.o with_args.o without_args.o
-	ar -rcs $@ $^
+all: runner.o common.o execute.o with_args.o without_args.o
 
 CFLAGS += -I../include -fPIC -Wall -g
 
@@ -14,4 +11,4 @@ without_args.o: without_args.c
 
 .PHONY: clean
 clean:
-	rm -f runner.a runner.o common.o execute.o with_args.o without_args.o
+	rm -f runner.o common.o execute.o with_args.o without_args.o

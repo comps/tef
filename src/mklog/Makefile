@@ -1,13 +1,10 @@
 .PHONY: all
-all: report.a
-
-report.a: report.o
-	ar -rcs $@ $^
+all: mklog.o
 
 CFLAGS += -I../include -fPIC -Wall -g
 
-report.o: report.c
+mklog.o: mklog.c
 
 .PHONY: clean
 clean:
-	rm -f report.a report.o
+	rm -f mklog.o
