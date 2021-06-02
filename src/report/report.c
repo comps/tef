@@ -19,7 +19,7 @@ static int intr_safe_setlkw(int fd, struct flock *f)
 {
     while (fcntl(fd, F_SETLKW, f) == -1) {
         if (errno != EINTR) {
-            ERROR("fcntl(F_SETLWK)");
+            PERROR_FMT("fcntl(%d, F_SETLWK)", fd);
             return -1;
         }
     }
@@ -61,7 +61,7 @@ static ssize_t write_safe(int fd, const void *buf, size_t count)
         if ((rc = write(fd, buf, count)) == -1) {
             if (errno == EINTR)
                 continue;
-            ERROR("write");
+            PERROR_FMT("write(%d, ..)", fd);
             return -1;
         }
         written += rc;
@@ -118,7 +118,7 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
 
     char *line = malloc(line_len);
     if (line == NULL) {
-        ERROR("malloc");
+        PERROR("malloc");
         return NULL;
     }
 

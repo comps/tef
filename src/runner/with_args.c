@@ -48,7 +48,7 @@ int for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
         if (!sane) {
-            ERROR_FORMAT("arg failed sanity check: %s\n", argv[i]);
+            ERROR_FMT("arg failed sanity check: %s\n", argv[i]);
             continue;
         }
 
@@ -64,7 +64,7 @@ int for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
         ptrdiff_t prefix_len = slash-sane;
         char *prefix = strndup(sane, prefix_len);
         if (prefix == NULL) {
-            ERROR("strndup");
+            PERROR("strndup");
             return -1;
         }
 
@@ -84,7 +84,7 @@ int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
     // +2 is for argv[0] and terminating NULL ptr
     if ((merged = malloc((argc+2)*sizeof(argv))) == NULL) {
-        ERROR("malloc");
+        PERROR("malloc");
         return -1;
     }
     // leave 0 for execve argv[0] being executable name
@@ -118,7 +118,7 @@ int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
         }
 
         if (!sane) {
-            ERROR_FORMAT("arg failed sanity check: %s\n", argv[i]);
+            ERROR_FMT("arg failed sanity check: %s\n", argv[i]);
             continue;
         }
 
@@ -133,7 +133,7 @@ int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
             prefix_len = slash-sane;
             prefix = strndup(sane, prefix_len);
             if (prefix == NULL) {
-                ERROR("strndup");
+                PERROR("strndup");
                 goto err;
             }
         }

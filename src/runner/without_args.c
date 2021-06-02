@@ -33,7 +33,7 @@ static bool is_exec(int parentfd, char *name)
     int ret;
     if ((ret = faccessat(parentfd, name, X_OK, 0)) == -1) {
         if (errno != EACCES && errno != ENOENT)
-            ERROR("faccessat");
+            PERROR_FMT("faccessat %s", name);
         return false;
     }
     return true;
@@ -44,7 +44,7 @@ find_execs(struct exec_entry ***entries, char *basename, char **ignored)
 {
     DIR *cwd = NULL;
     if ((cwd = opendir(".")) == NULL) {
-        ERROR("opendir CWD");
+        PERROR("opendir CWD");
         return -1;
     }
 
@@ -98,7 +98,7 @@ find_execs(struct exec_entry ***entries, char *basename, char **ignored)
             case EXEC_TYPE_DIR:
                 // look for our basename in the directory
                 if ((subdir = openat(cwdfd, dent->d_name, O_DIRECTORY)) == -1) {
-                    ERROR("openat");
+                    PERROR_FMT("openat %s", dent->d_name);
                     continue;
                 }
                 if (!is_exec(subdir, basename)) {
@@ -117,14 +117,14 @@ find_execs(struct exec_entry ***entries, char *basename, char **ignored)
         }
 
         if ((ents = realloc_safe(ents, (entcnt+1)*sizeof(*ents))) == NULL) {
-            ERROR("realloc");
+            PERROR("realloc");
             goto err;
         }
         entcnt++;
 
         struct exec_entry *ent;
         if ((ent = malloc(sizeof(*ent))) == NULL) {
-            ERROR("malloc");
+            PERROR("malloc");
             goto err;
         }
         strncpy(ent->name, dent->d_name, sizeof(ent->name));

@@ -56,7 +56,7 @@ execute(char *exe, enum exec_entry_type typehint, char **argv,
 {
     if (typehint == EXEC_TYPE_UNKNOWN) {
         if (fstatat_type(AT_FDCWD, exe, &typehint) == -1) {
-            ERROR("fstatat");
+            PERROR_FMT("fstatat %s", exe);
             //state->failed = true;
             return -1;
         }
@@ -76,7 +76,7 @@ execute(char *exe, enum exec_entry_type typehint, char **argv,
             state->failed = true;
     }
     if (child == -1) {
-        ERROR("waitpid WNOHANG");
+        PERROR("waitpid WNOHANG");
         return -1;
     }
 
@@ -119,7 +119,7 @@ execute(char *exe, enum exec_entry_type typehint, char **argv,
                     //debug end
                     break;
                 default:
-                    ERROR_FORMAT("invalid exec type %d\n", typehint);
+                    ERROR_FMT("invalid exec type %d\n", typehint);
                     return -1;
             }
             // ..
@@ -140,7 +140,7 @@ execute(char *exe, enum exec_entry_type typehint, char **argv,
             if (WEXITSTATUS(child) != 0)
                 state->failed = true;
         } else {
-            ERROR("waitpid");
+            PERROR("waitpid");
             return -1;
         }
     }

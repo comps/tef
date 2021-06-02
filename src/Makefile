@@ -16,7 +16,7 @@ runner:
 	@$(MAKE) -C runner
 report:
 	@$(MAKE) -C report
-lib: runner report
+lib: runner report helpers
 	@$(MAKE) -C lib
 cli: lib
 	@$(MAKE) -C cli
