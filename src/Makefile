@@ -9,7 +9,9 @@
 .PHONY: all
 all: lib cli
 
-.PHONY: runner report lib cli
+.PHONY: helpers runner report lib cli
+helpers:
+	@$(MAKE) -C helpers
 runner:
 	@$(MAKE) -C runner
 report:
@@ -21,6 +23,7 @@ cli: lib
 
 .PHONY: clean
 clean:
+	@$(MAKE) -C helpers clean
 	@$(MAKE) -C runner clean
 	@$(MAKE) -C report clean
 	@$(MAKE) -C lib clean

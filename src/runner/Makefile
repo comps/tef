@@ -1,7 +1,7 @@
 .PHONY: all
 all: runner.o common.o execute.o with_args.o without_args.o
 
-CFLAGS += -I../include -fPIC -Wall -g
+CFLAGS += -I../include -I../helpers -fPIC -Wall -g
 
 runner.o: runner.c
 common.o: common.c

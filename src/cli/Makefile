@@ -1,12 +1,12 @@
 .PHONY: all
 all: tef-runner tef-report
 
-CFLAGS += -I../include -Wall -g
+CFLAGS += -I../include -I../helpers -Wall -g
 
 tef-runner.o: tef-runner.c
 tef-report.o: tef-report.c
 
-tef-runner: tef-runner.o ../runner/common.o
+tef-runner: tef-runner.o ../helpers/tef_helpers.o
 	$(CC) -L../lib -o $@ $^ -ltef
 
 tef-report: tef-report.o

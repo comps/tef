@@ -10,23 +10,19 @@
 
 
 
-- runner features / arguments - bools as unsigned int flags with #defines
-  - argv0: string
-  - parallel: bool (0)
-  - merge_args: bool (1)
-  - ignore_files: argv, NULL-terminated
-    - for skipping executables/dirs in cwd when running arg-less
-  - ..
-
 
 - warn that readdir(3) is used, which is generally thread-safe,
   but this is not guaranteed by POSIX.1
   - also document thread-safety for all 3 API functions
-  - ie. runner is generally thread safe, but
+  - ie. runner is *not* thread safe with itself, but it should be safe to use in a bigger
+    threaded program, though note:
     - writes to stdout, locked by F_WRLCK
     - writes to stderr on error, unsafely (not locked)
     - manages forks without PID tracking, so DO NOT start any background
       forks that may exit before the runner call finishes
+      - thus also do not start more than one instance of the runner in
+        a single process
+      - the limitation is waitpid() unable to wait for an array of pids
 
 - look for EINTR of every syscall used, make an INTR-safe wrapper
   for each one of them
@@ -111,3 +107,5 @@
   - return either the new ptr on success, or NULL on fail
   - caller can then choose to free the passed ptr on fail
     or continue on without new element added
+
+- include guards (for multiple-inclusion) in tef.h

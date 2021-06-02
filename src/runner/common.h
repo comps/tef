@@ -1,7 +1,7 @@
+#include <stdbool.h>
 #include <stddef.h>
-#include <tef.h>
 
-extern void *realloc_safe(void *ptr, size_t size);
+#include <tef.h>
 
 enum exec_entry_type {
     EXEC_TYPE_UNKNOWN,
@@ -23,14 +23,14 @@ struct exec_state {
     int running_jobs;
 };
 
-extern void
+extern int
 execute(char *exe, enum exec_entry_type typehint, char **argv,
         struct tef_runner_opts *opts, struct exec_state *state);
 
-extern bool
+extern int
 for_each_arg(int argc, char **argv, struct tef_runner_opts *opts);
 
-extern bool
+extern int
 for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts);
 
-extern bool for_each_exec(struct tef_runner_opts *opts);
+extern int for_each_exec(struct tef_runner_opts *opts);

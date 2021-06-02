@@ -13,8 +13,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-//#include <tef.h>
-//#include "../runner/common.h"
+#include <tef.h>
 
 static void print_help(void)
 {
@@ -24,6 +23,7 @@ static void print_help(void)
 
 int main(int argc, char **argv)
 {
+#if 0
     int c;
     while ((c = getopt(argc, argv, "h")) != -1) {
         switch (c) {
@@ -39,11 +39,21 @@ int main(int argc, char **argv)
         //if (errno)
         //    exit(EXIT_FAILURE);
     }
+#endif
+    if (argc < 3) {
+        print_help();
+        return 1;
+    }
 
-    //if (!opts.argv0)
-    //    opts.argv0 = basename(argv[0]);
-
-    //printf("%s // %d : %d\n", argv[optind], optind, argc);
-    //return !tef_runner(argc-optind, argv+optind, &opts);
-    return 0;
+    switch (tef_report(argv[1], argv[2])) {
+        // success
+        case 0:
+            return 0;
+        // internal error
+        case -1:
+            return 1;
+        // test error
+        default:
+            return 2;
+    }
 }

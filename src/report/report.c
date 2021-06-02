@@ -12,12 +12,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <tef_helpers.h>
+
 // in case we get interrupted by a signal
 static int intr_safe_setlkw(int fd, struct flock *f)
 {
     while (fcntl(fd, F_SETLKW, f) == -1) {
-        if (errno != EINTR)
+        if (errno != EINTR) {
+            ERROR("fcntl(F_SETLWK)");
             return -1;
+        }
     }
     return 0;
 }
@@ -57,6 +61,7 @@ static ssize_t write_safe(int fd, const void *buf, size_t count)
         if ((rc = write(fd, buf, count)) == -1) {
             if (errno == EINTR)
                 continue;
+            ERROR("write");
             return -1;
         }
         written += rc;
@@ -112,8 +117,10 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
     }
 
     char *line = malloc(line_len);
-    if (line == NULL)
+    if (line == NULL) {
+        ERROR("malloc");
         return NULL;
+    }
 
     char *part = line;
     if (color) {
@@ -149,12 +156,10 @@ static char *status_colors[][3] = {
 #define TERMINAL_FD 1
 
 __asm__(".symver tef_report_v0, tef_report@@VERS_0");
-bool tef_report_v0(char *status, char *name)
+int tef_report_v0(char *status, char *name)
 {
     char *status_pretty = status;
     char *color = NULL;
-
-    // TODO: perrors for all 'return false' in this func
 
     // if fd 1 is terminal, look up status color
     // if not or if status is unknown, color remains NULL --> no color codes
@@ -199,18 +204,9 @@ bool tef_report_v0(char *status, char *name)
     }
 
     free(line);
-    return true;
+    return 0;
 
 err:
     free(line);
-    return false;
+    return -1;
 }
-
-#if 0
-int main(int argc, char **argv)
-{
-    if (argc < 3)
-        return 1;
-    return !tef_report(argv[1], argv[2]);
-}
-#endif

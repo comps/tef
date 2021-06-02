@@ -1,12 +1,10 @@
-#include <stdbool.h>
-
 //#define _POSIX_C_SOURCE 200809L
 
 #include "common.h"
 
 // true if everything PASSed, false on error or FAIL
 __asm__(".symver tef_runner_v0, tef_runner@@VERS_0");
-bool tef_runner_v0(int argc, char **argv, struct tef_runner_opts *opts)
+int tef_runner_v0(int argc, char **argv, struct tef_runner_opts *opts)
 {
     // sanitize opts
     if (opts->jobs < 1)

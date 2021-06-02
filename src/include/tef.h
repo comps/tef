@@ -1,4 +1,5 @@
-#include <stdbool.h>
+#ifndef _TEF_H
+#define _TEF_H
 
 struct tef_runner_opts {
     char *argv0;
@@ -7,5 +8,7 @@ struct tef_runner_opts {
     int nomerge_args;
 };
 
-extern bool tef_runner(int argc, char **argv, struct tef_runner_opts *opts);
-extern bool tef_report(char *status, char *name);
+extern int tef_runner(int argc, char **argv, struct tef_runner_opts *opts);
+extern int tef_report(char *status, char *name);
+
+#endif

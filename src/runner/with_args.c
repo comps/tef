@@ -11,6 +11,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <tef.h>
+#include <tef_helpers.h>
+
 #include "common.h"
 
 static char *sane_arg(char *a)
@@ -33,7 +36,7 @@ static char *sane_arg(char *a)
     return a;
 }
 
-bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
+int for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     struct exec_state state = { 0 };
 
@@ -45,7 +48,7 @@ bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
         if (!sane) {
-            fprintf(stderr, "insane arg: %s\n", argv[i]);
+            ERROR_FORMAT("arg failed sanity check: %s\n", argv[i]);
             continue;
         }
 
@@ -60,8 +63,10 @@ bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
         ptrdiff_t prefix_len = slash-sane;
         char *prefix = strndup(sane, prefix_len);
-        if (prefix == NULL)
-            return false;
+        if (prefix == NULL) {
+            ERROR("strndup");
+            return -1;
+        }
 
         arg[1] = sane+prefix_len+1;  // skip prefix + '/'
         execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts, &state);
@@ -72,15 +77,15 @@ bool for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
     return state.failed;
 }
 
-bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
+int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     char **merged;
     struct exec_state state = { 0 };
 
     // +2 is for argv[0] and terminating NULL ptr
     if ((merged = malloc((argc+2)*sizeof(argv))) == NULL) {
-        perror("malloc");
-        return false;
+        ERROR("malloc");
+        return -1;
     }
     // leave 0 for execve argv[0] being executable name
     int merged_idx = 1;
@@ -113,7 +118,7 @@ bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
         }
 
         if (!sane) {
-            fprintf(stderr, "insane arg: %s\n", argv[i]);
+            ERROR_FORMAT("arg failed sanity check: %s\n", argv[i]);
             continue;
         }
 
@@ -127,8 +132,10 @@ bool for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
         if (!prefix) {
             prefix_len = slash-sane;
             prefix = strndup(sane, prefix_len);
-            if (prefix == NULL)
+            if (prefix == NULL) {
+                ERROR("strndup");
                 goto err;
+            }
         }
 
         // appending to existing merge arglist
@@ -147,5 +154,5 @@ err:
         execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
     free(prefix);
     free(merged);
-    return false;
+    return -1;
 }
