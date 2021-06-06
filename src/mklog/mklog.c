@@ -14,41 +14,6 @@
 
 #include <tef_helpers.h>
 
-// recursive mkdir start at srcfd (O_DIRECTORY)
-static int mkpath(int srcfd, char *path)
-{
-    char *buff;
-    if ((buff = malloc(strlen(path)+1)) == NULL) {
-        PERROR("malloc");
-        return -1;
-    }
-
-    char *pos = buff;
-    char *start = path, *end = path;
-    while ((end = strchr(start, '/')) != NULL) {
-        if (end == start) {
-            start++;
-            continue;
-        }
-        pos = memcpy_append(pos, start, end-start+1);
-        *pos = '\0';
-        if (mkdirat(srcfd, buff, 0700) == -1)
-            goto err;
-        start = end+1;
-    }
-    if (*start != '\0') {
-        strcpy(pos, start);
-        if (mkdirat(srcfd, buff, 0700) == -1)
-            goto err;
-    }
-
-    free(buff);
-    return 0;
-err:
-    free(buff);
-    return -1;
-}
-
 // rotate old logs, create new one, return its fd
 static int open_log(int dirfd, char *testname)
 {
@@ -132,65 +97,99 @@ err:
     return -1;
 }
 
-
-// TODO: split the below into two big blocks,
-//       do the combining, mkpath(), etc. only if TEF_LOGS exists,
-//       else just create/open "logs" in CWD directly, no mkpath(),
-//       no TEF_PREFIX prepending
-//
-// TODO: also figure out why rotation doesn't work with TEF_PREFIX
-
-// create and open a log file for testname, return its fd
-__asm__(".symver tef_mklog_v0, tef_mklog@@VERS_0");
-int tef_mklog_v0(char *testname)
+// recursive mkdir start at srcfd (O_DIRECTORY)
+static int mkpath(int srcfd, char *path)
 {
-    // use TEF_LOGS, default to logs/ in CWD
-    char *logsdir = getenv("TEF_LOGS");
-    if (!logsdir || *logsdir == '\0') {
-        logsdir = "logs";
+    char *buff;
+    if ((buff = malloc(strlen(path)+1)) == NULL) {
+        PERROR("malloc");
+        return -1;
     }
 
+    char *pos = buff;
+    char *start = path, *end = path;
+    while ((end = strchr(start, '/')) != NULL) {
+        if (end == start) {
+            start++;
+            continue;
+        }
+        pos = memcpy_append(pos, start, end-start+1);
+        *pos = '\0';
+        if (mkdirat(srcfd, buff, 0755) == -1 && errno != EEXIST) {
+            PERROR_FMT("mkdirat %s", buff);
+            goto err;
+        }
+        start = end+1;
+    }
+    if (*start != '\0') {
+        strcpy(pos, start);
+        if (mkdirat(srcfd, buff, 0755) == -1 && errno != EEXIST) {
+            PERROR_FMT("mkdirat %s", buff);
+            goto err;
+        }
+    }
+
+    free(buff);
+    return 0;
+err:
+    free(buff);
+    return -1;
+}
+
+static int open_create_dir(char *name)
+{
+    int fd = open(name, O_DIRECTORY);
+    if (fd == -1) {
+        if (errno != ENOENT) {
+            PERROR_FMT("open %s", name);
+            goto err;
+        }
+        if (mkdir(name, 0755) == -1) {
+            PERROR_FMT("mkdir %s", name);
+            goto err;
+        }
+        if ((fd = open(name, O_DIRECTORY)) == -1) {
+            PERROR_FMT("open %s", name);
+            goto err;
+        }
+    }
+    return fd;
+err:
+    close(fd);
+    return -1;
+}
+
+// open/create TEF_LOGS, create path inside it, open final leaf dir
+static int open_tef_logs(char *tef_logs, char *tef_prefix)
+{
     char *combined = NULL;
 
     // try opening it, create if necessary
-    int logsfd = open(logsdir, O_DIRECTORY);
-    if (logsfd == -1) {
-        if (errno != ENOENT) {
-            PERROR_FMT("open %s", logsdir);
-            goto err;
-        }
-        if (mkdir(logsdir, 0755) == -1) {
-            PERROR_FMT("mkdir %s", logsdir);
-            goto err;
-        }
-        if ((logsfd = open(logsdir, O_DIRECTORY)) == -1) {
-            PERROR_FMT("open %s", logsdir);
-            goto err;
-        }
-    }
-
-    char *prefix = getenv("TEF_PREFIX");
-    if (!prefix)
-        prefix = "";
-
-    // 'mkdir -p' any directories inside TEF_LOGS
-    if (mkpath(logsfd, prefix) == -1)
+    int logsfd = open_create_dir(tef_logs);
+    if (logsfd == -1)
         goto err;
 
-    size_t logsdir_len = strlen(logsdir);
-    size_t prefix_len = strlen(prefix);
+    if (!tef_prefix)
+        tef_prefix = "";
 
-    // concat TEF_LOGS + '/' + TEF_PREFIX
-    combined = malloc(logsdir_len+prefix_len+2);
+    // 'mkdir -p' any directories inside TEF_LOGS
+    if (mkpath(logsfd, tef_prefix) == -1)
+        goto err;
+
+    size_t tef_logs_len = strlen(tef_logs);
+    size_t tef_prefix_len = strlen(tef_prefix);
+
+    // concat TEF_LOGS + '/' + TEF_PREFIX + '\0'
+    combined = malloc(tef_logs_len+tef_prefix_len+2);
     if (combined == NULL) {
         PERROR("malloc");
         goto err;
     }
 
     char *pos = combined;
-    pos = memcpy_append(pos, logsdir, logsdir_len);
+    pos = memcpy_append(pos, tef_logs, tef_logs_len);
     *pos++ = '/';
-    pos = memcpy_append(pos, prefix, prefix_len);
+    pos = memcpy_append(pos, tef_prefix, tef_prefix_len);
     *pos = '\0';
 
     // open the concatenated result
@@ -201,15 +200,33 @@ int tef_mklog_v0(char *testname)
         goto err;
     }
 
-    int fd = open_log(logsfd, testname);
-    if (fd == -1)
-        PERROR_FMT("open_log in %s", combined);
-
     free(combined);
+    return logsfd;
+err:
+    free(combined);
+    close(logsfd);
+    return -1;
+}
+
+// create and open a log file for testname, return its fd
+__asm__(".symver tef_mklog_v0, tef_mklog@@VERS_0");
+int tef_mklog_v0(char *testname)
+{
+    int logsfd;
+
+    char *tef_logs = getenv("TEF_LOGS");
+    if (tef_logs && *tef_logs != '\0')
+        logsfd = open_tef_logs(tef_logs, getenv("TEF_PREFIX"));
+    else
+        logsfd = open_create_dir("logs");
+
+    if (logsfd == -1)
+        goto err;
+
+    int fd = open_log(logsfd, testname);
     close(logsfd);
     return fd;
 err:
-    free(combined);
     close(logsfd);
     return -1;
 }

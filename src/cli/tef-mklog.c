@@ -45,15 +45,5 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    switch (tef_mklog(argv[1])) {
-        // success
-        case 0:
-            return 0;
-        // internal error
-        case -1:
-            return 1;
-        // test error
-        default:
-            return 2;
-    }
+    return tef_mklog(argv[1]) == -1 ? 1 : 0;
 }
