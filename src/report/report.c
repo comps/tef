@@ -90,10 +90,6 @@ static ssize_t write_safe_locked(int fd, const void *buf, size_t count)
 #define CLLEN sizeof(CLGREEN)-1
 #define CLRESETLEN sizeof(CLRESET)-1
 
-static void *memcpy_append(void *dest, void *src, size_t n)
-{
-    return memcpy(dest, src, n) + n;
-}
 // allocate and return a line buffer
 static char *format_line(char *status, char *name, size_t *len, char *color)
 {

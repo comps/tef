@@ -15,7 +15,7 @@ struct exec_entry {
     char name[256];  // same as struct dirent
 };
 
-extern int fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type);
+int fstatat_type(int dirfd, char *pathname, enum exec_entry_type *type);
 
 // used across repeated execute() calls to track state
 struct exec_state {
@@ -23,14 +23,11 @@ struct exec_state {
     int running_jobs;
 };
 
-extern int
-execute(char *exe, enum exec_entry_type typehint, char **argv,
-        struct tef_runner_opts *opts, struct exec_state *state);
+int execute(char *exe, enum exec_entry_type typehint, char **argv,
+            struct tef_runner_opts *opts, struct exec_state *state);
 
-extern int
-for_each_arg(int argc, char **argv, struct tef_runner_opts *opts);
+int for_each_arg(int argc, char **argv, struct tef_runner_opts *opts);
 
-extern int
-for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts);
+int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts);
 
-extern int for_each_exec(struct tef_runner_opts *opts);
+int for_each_exec(struct tef_runner_opts *opts);

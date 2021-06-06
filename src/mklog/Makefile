@@ -1,7 +1,7 @@
 .PHONY: all
 all: mklog.o
 
-CFLAGS += -I../include -fPIC -Wall -g
+CFLAGS += -I../include -I../helpers -fPIC -Wall -g
 
 mklog.o: mklog.c
 

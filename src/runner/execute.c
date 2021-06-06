@@ -16,7 +16,7 @@
 
 #include "common.h"
 
-void execute_file(char *exe, char **argv)
+static void execute_file(char *exe, char **argv)
 {
     // don't touch TEF_PREFIX
     // do execv()
@@ -24,7 +24,7 @@ void execute_file(char *exe, char **argv)
     (void)argv;
 }
 
-void execute_dir(char *exe, char **argv, char *dir)
+static void execute_dir(char *exe, char **argv, char *dir)
 {
     // append 'dir' to TEF_PREFIX, do setenv, check for err
     // - if getenv(TEF_PREFIX) is NULL, create it
@@ -50,9 +50,8 @@ static pid_t waitpid_safe(pid_t pid, int *wstatus, int options)
 // named after basename
 // - argv must have [0] allocated and unused (to be used for argv[0])
 //   and be terminated at [1] or later with NULL
-int
-execute(char *exe, enum exec_entry_type typehint, char **argv,
-        struct tef_runner_opts *opts, struct exec_state *state)
+int execute(char *exe, enum exec_entry_type typehint, char **argv,
+            struct tef_runner_opts *opts, struct exec_state *state)
 {
     if (typehint == EXEC_TYPE_UNKNOWN) {
         if (fstatat_type(AT_FDCWD, exe, &typehint) == -1) {

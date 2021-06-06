@@ -12,204 +12,204 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-// in case we get interrupted by a signal
-static int intr_safe_setlkw(int fd, struct flock *f)
-{
-    while (fcntl(fd, F_SETLKW, f) == -1) {
-        if (errno != EINTR)
-            return -1;
-    }
-    return 0;
-}
-static int lock(int fd)
-{
-    struct flock f = {
-        .l_type = F_WRLCK,
-        .l_whence = SEEK_SET,
-        .l_start = 0,
-        .l_len = 0,
-    };
-    return intr_safe_setlkw(fd, &f);
-}
-static int unlock(int fd)
-{
-    struct flock f = {
-        .l_type = F_UNLCK,
-        .l_whence = SEEK_SET,
-        .l_start = 0,
-        .l_len = 0,
-    };
-    return intr_safe_setlkw(fd, &f);
-}
+#include <tef_helpers.h>
 
-static bool is_terminal(int fd)
+// recursive mkdir start at srcfd (O_DIRECTORY)
+static int mkpath(int srcfd, char *path)
 {
-    struct termios tos;
-    return !tcgetattr(fd, &tos);
-}
-
-// TODO: maybe rewrite this to writev(2), though dealing with its partial writes
-//       (less than full bytes returned) across buffers would be really ugly
-static ssize_t write_safe(int fd, const void *buf, size_t count)
-{
-    ssize_t rc, written = 0;
-    while ((size_t)written < count) {
-        if ((rc = write(fd, buf, count)) == -1) {
-            if (errno == EINTR)
-                continue;
-            return -1;
-        }
-        written += rc;
-    }
-    return written;
-}
-static ssize_t write_safe_locked(int fd, const void *buf, size_t count)
-{
-    int write_errno;
-    ssize_t rc;
-    if (lock(fd) == -1)
+    char *buff;
+    if ((buff = malloc(strlen(path)+1)) == NULL) {
+        PERROR("malloc");
         return -1;
-    rc = write_safe(fd, buf, count);
-    write_errno = errno;
-    unlock(fd);
-    errno = write_errno;
-    return rc;
-}
-
-#define CLGREEN "\e[1;32m"
-#define CLRED   "\e[1;31m"
-#define CLBLUE  "\e[1;34m"
-#define CLGRAY  "\e[1;90m"
-#define CLRESET "\e[0m"
-// avoid strlen
-#define CLLEN sizeof(CLGREEN)-1
-#define CLRESETLEN sizeof(CLRESET)-1
-
-static void *memcpy_append(void *dest, void *src, size_t n)
-{
-    return memcpy(dest, src, n) + n;
-}
-// allocate and return a line buffer
-static char *format_line(char *status, char *name, size_t *len, char *color)
-{
-    size_t status_len = strlen(status);
-    size_t name_len = strlen(name);
-
-    size_t line_len;
-    if (color) {
-        // color, status, color rst, space, name, '\n', '\0'
-        line_len = CLLEN + status_len + CLRESETLEN + name_len + 3;
-    } else {
-        // status, space, name, '\n', '\0'
-        line_len = status_len + name_len + 3;
     }
 
-    char *tef_prefix = getenv("TEF_PREFIX");
-    size_t tef_prefix_len = 0;
-    if (tef_prefix) {
-        tef_prefix_len = strlen(tef_prefix);
-        line_len += tef_prefix_len + 1;  // incl. '/' suffix
-    }
-
-    char *line = malloc(line_len);
-    if (line == NULL)
-        return NULL;
-
-    char *part = line;
-    if (color) {
-        part = memcpy_append(part, color, CLLEN);
-        part = memcpy_append(part, status, status_len);
-        part = memcpy_append(part, CLRESET, CLRESETLEN);
-    } else {
-        part = memcpy_append(part, status, status_len);
-    }
-    *part++ = ' ';
-    if (tef_prefix) {
-        part = memcpy_append(part, tef_prefix, tef_prefix_len);
-        *part++ = '/';
-    }
-    part = memcpy_append(part, name, name_len);
-    *part++ = '\n';
-    *part = '\0';
-
-    *len = line_len-1;  // without '\0'
-    return line;
-}
-
-// status match, pretty name, color
-static char *status_colors[][3] = {
-    { "PASS", "PASS", CLGREEN },
-    { "FAIL", "FAIL", CLRED   },
-    { "RUN",  "RUN ", CLBLUE  },
-    { "MARK", "MARK", CLGRAY  },
-};
-#define STATUSLEN sizeof(status_colors)/sizeof(*status_colors)
-
-// don't use STDOUT_FILENO as the standard specifies numbers
-#define TERMINAL_FD 1
-
-bool tef_report(char *status, char *name)
-{
-    char *status_pretty = status;
-    char *color = NULL;
-
-    // TODO: perrors for all 'return false' in this func
-
-    // if fd 1 is terminal, look up status color
-    // if not or if status is unknown, color remains NULL --> no color codes
-    bool isterm = is_terminal(TERMINAL_FD);
-    if (isterm) {
-        for (unsigned long i = 0; i < STATUSLEN; i++) {
-            if (strcmp(status_colors[i][0], status)==0) {
-                status_pretty = status_colors[i][1];
-                color = status_colors[i][2];
-                break;
-            }
+    char *pos = buff;
+    char *start = path, *end = path;
+    while ((end = strchr(start, '/')) != NULL) {
+        if (end == start) {
+            start++;
+            continue;
         }
+        pos = memcpy_append(pos, start, end-start+1);
+        *pos = '\0';
+        if (mkdirat(srcfd, buff, 0700) == -1)
+            goto err;
+        start = end+1;
+    }
+    if (*start != '\0') {
+        strcpy(pos, start);
+        if (mkdirat(srcfd, buff, 0700) == -1)
+            goto err;
     }
 
-    // write to stdout
-    size_t len;
-    char *line = format_line(status_pretty, name, &len, color);
-    if (!line)
-        goto err;
-
-    if (write_safe_locked(TERMINAL_FD, line, len) == -1)
-        goto err;
-
-    // duplicate write to TEF_RESULTS_FD
-    char *tef_results_fd = getenv("TEF_RESULTS_FD");
-    if (tef_results_fd) {
-        int fd = atoi(tef_results_fd);
-        if (fd > 0) {
-            if (!color) {
-                // black'n'white line already formatted
-                if (write_safe_locked(fd, line, len) == -1)
-                    goto err;
-            } else {
-                free(line);
-                line = format_line(status_pretty, name, &len, NULL);
-                if (!line)
-                    goto err;
-                if (write_safe_locked(fd, line, len) == -1)
-                    goto err;
-            }
-        }
-    }
-
-    free(line);
-    return true;
-
+    free(buff);
+    return 0;
 err:
-    free(line);
-    return false;
+    free(buff);
+    return -1;
 }
 
-#if 0
-int main(int argc, char **argv)
+// rotate old logs, create new one, return its fd
+static int open_log(int dirfd, char *testname)
 {
-    if (argc < 3)
-        return 1;
-    return !tef_report(argv[1], argv[2]);
+    // do log rotation (unlinkat(), renameat()) based on this dir fd
+    // create the final new logfile via open() O_CREAT | O_WRONLY
+    // return it as open fd
+    char tmpl_suffix[] = ".1.log";
+
+    size_t testname_len = strlen(testname);
+
+    char *from = NULL, *to = NULL;
+
+    if ((from = malloc(testname_len+sizeof(tmpl_suffix))) == NULL) {
+        PERROR("malloc");
+        goto err;
+    }
+
+    char *pos = from;
+    pos = memcpy_append(pos, testname, testname_len);
+    pos = memcpy_append(pos, tmpl_suffix, sizeof(tmpl_suffix));
+
+    if ((to = strdup(from)) == NULL) {
+        PERROR("strdup");
+        goto err;
+    }
+
+    // offsets of the single-digit logrotated number
+    char *fromnr = from+testname_len+1;
+    char *tonr = to+testname_len+1;
+
+    // unlink (remove) the oldest log if it exists
+    *fromnr = '9';
+    if (unlinkat(dirfd, from, 0) == -1 && errno != ENOENT) {
+        PERROR_FMT("unlinkat %s", from);
+        goto err;
+    }
+
+    // rotate everything one iteration
+    // unfortunately this is the easiest way without expensive printf
+#define MOVE(fromnum,tonum) \
+    do { \
+        *fromnr = fromnum; \
+        *tonr = tonum; \
+        if (renameat(dirfd, from, dirfd, to) == -1 && errno != ENOENT) { \
+            PERROR_FMT("rename %s to %s", from, to); \
+            goto err; \
+        } \
+    } while (0)
+    MOVE('8','9');
+    MOVE('7','8');
+    MOVE('6','7');
+    MOVE('5','6');
+    MOVE('4','5');
+    MOVE('3','4');
+    MOVE('2','3');
+    MOVE('1','2');
+#undef MOVE
+
+    // manually move .log to .1.log here
+    // re-use the already-allocated 'to' by replacing '.2.log' with '.log'
+    // 'from' already has '.1.log' here
+    strcpy(to+testname_len, ".log");
+    if (renameat(dirfd, to, dirfd, from) == -1 && errno != ENOENT) {
+        PERROR_FMT("rename %s to %s", to, from);
+        goto err;
+    }
+
+    // create and open a new log
+    int fd = openat(dirfd, to, O_CREAT | O_WRONLY, 0644);
+    if (fd == -1) {
+        PERROR_FMT("openat(..,%s,O_CREAT|O_WRONLY)", to);
+        goto err;
+    }
+
+    free(from);
+    free(to);
+    return fd;
+err:
+    free(from);
+    free(to);
+    return -1;
 }
-#endif
+
+
+// TODO: split the below into two big blocks,
+//       do the combining, mkpath(), etc. only if TEF_LOGS exists,
+//       else just create/open "logs" in CWD directly, no mkpath(),
+//       no TEF_PREFIX prepending
+//
+// TODO: also figure out why rotation doesn't work with TEF_PREFIX
+
+// create and open a log file for testname, return its fd
+__asm__(".symver tef_mklog_v0, tef_mklog@@VERS_0");
+int tef_mklog_v0(char *testname)
+{
+    // use TEF_LOGS, default to logs/ in CWD
+    char *logsdir = getenv("TEF_LOGS");
+    if (!logsdir || *logsdir == '\0') {
+        logsdir = "logs";
+    }
+
+    char *combined = NULL;
+
+    // try opening it, create if necessary
+    int logsfd = open(logsdir, O_DIRECTORY);
+    if (logsfd == -1) {
+        if (errno != ENOENT) {
+            PERROR_FMT("open %s", logsdir);
+            goto err;
+        }
+        if (mkdir(logsdir, 0755) == -1) {
+            PERROR_FMT("mkdir %s", logsdir);
+            goto err;
+        }
+        if ((logsfd = open(logsdir, O_DIRECTORY)) == -1) {
+            PERROR_FMT("open %s", logsdir);
+            goto err;
+        }
+    }
+
+    char *prefix = getenv("TEF_PREFIX");
+    if (!prefix)
+        prefix = "";
+
+    // 'mkdir -p' any directories inside TEF_LOGS
+    if (mkpath(logsfd, prefix) == -1)
+        goto err;
+
+    size_t logsdir_len = strlen(logsdir);
+    size_t prefix_len = strlen(prefix);
+
+    // concat TEF_LOGS + '/' + TEF_PREFIX
+    combined = malloc(logsdir_len+prefix_len+2);
+    if (combined == NULL) {
+        PERROR("malloc");
+        goto err;
+    }
+
+    char *pos = combined;
+    pos = memcpy_append(pos, logsdir, logsdir_len);
+    *pos++ = '/';
+    pos = memcpy_append(pos, prefix, prefix_len);
+    *pos = '\0';
+
+    // open the concatenated result
+    close(logsfd);
+    logsfd = open(combined, O_DIRECTORY);
+    if (logsfd == -1) {
+        PERROR_FMT("open %s", combined);
+        goto err;
+    }
+
+    int fd = open_log(logsfd, testname);
+    if (fd == -1)
+        PERROR_FMT("open_log in %s", combined);
+
+    free(combined);
+    close(logsfd);
+    return fd;
+err:
+    free(combined);
+    close(logsfd);
+    return -1;
+}

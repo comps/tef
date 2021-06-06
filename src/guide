@@ -109,3 +109,19 @@
     or continue on without new element added
 
 - include guards (for multiple-inclusion) in tef.h
+
+- mention in TEF.md that TEF_LOGS directory:
+  - MUST be created if it doesn't exist
+  - its parents SHOULD NOT be created (error condition caused instead)
+  - paths inside TEF_LOGS however SHOULD be created incl. parents
+    - so that parent runners don't have to support log creation
+
+- mention in TEF.md that a non-empty TEF_PREFIX must start with a '/'
+
+- mention in TEF.md (or elsewhere) that runner implementations should not
+  use the TEF_* env variable namespace for out-of-spec features as this
+  may lead to name clashes with future spec versions
+
+- mention in TEF.md that log rotation should go from .log to .1.log,
+  without .0.log
+  - also mention that the rotated logs must use only a single digit

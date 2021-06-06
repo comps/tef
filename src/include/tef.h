@@ -8,7 +8,8 @@ struct tef_runner_opts {
     int nomerge_args;
 };
 
-extern int tef_runner(int argc, char **argv, struct tef_runner_opts *opts);
-extern int tef_report(char *status, char *name);
+int tef_runner(int argc, char **argv, struct tef_runner_opts *opts);
+int tef_report(char *status, char *name);
+int tef_mklog(char *testname);
 
 #endif

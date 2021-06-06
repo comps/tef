@@ -29,3 +29,9 @@ void *realloc_safe(void *ptr, size_t size)
         free(ptr);
     return new;
 }
+
+// like stpcpy, but without the repeated internal strlen()
+void *memcpy_append(void *dest, void *src, size_t n)
+{
+    return memcpy(dest, src, n) + n;
+}
