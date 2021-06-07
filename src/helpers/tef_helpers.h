@@ -5,7 +5,8 @@
 #define STRINGIFY(x) STRINGIFY_INDIRECT(x)
 #define FILELINE __FILE__ ":" STRINGIFY(__LINE__) ": "
 
-#define ERROR_FD 2
+#define DEFAULT_ERROR_FD 2
+#define ERROR_FD DEFAULT_ERROR_FD
 
 // malloc-less, for low-resource fast error printing
 #define PERROR(msg) perror_fd(ERROR_FD, __func__, FILELINE, msg)
