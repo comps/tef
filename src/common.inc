@@ -116,14 +116,14 @@ _tef_run_child() {
                 fi
                 rc=$?
                 popd >/dev/null
-            } &> "$logfile"
+            } 2> "$logfile"
             [ $rc -eq 0 ] && _tef_log_status PASS "$child" || _tef_log_status FAIL "$child"
         fi
     elif [ -x "$child" ]; then
         logfile=$(_tef_create_logfile "$child") || return 1
         _tef_log_status RUN "$child"
         args[0]="./$1"
-        TEF_PREFIX="$TEF_PREFIX/$child" "${args[@]}" &> "$logfile"
+        TEF_PREFIX="$TEF_PREFIX/$child" "${args[@]}" 2> "$logfile"
         [ $? -eq 0 ] && _tef_log_status PASS "$child" || _tef_log_status FAIL "$child"
     fi
 }
