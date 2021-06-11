@@ -34,17 +34,17 @@ _tef_normalize_path() {
 _tef_log_status() {
     local status="$1" name="$2"
 
-    if [ -t 0 ]; then
+    if [ -t 1 ]; then
         case "$status" in
-            PASS) echo -ne "\033[1;32m${status}\033[0m" >&0 ;;
-            FAIL) echo -ne "\033[1;31m${status}\033[0m" >&0 ;;
-            RUN) echo -ne "\033[1;34m${status} \033[0m" >&0 ;;
-            MARK) echo -ne "\033[1;90m${status}\033[0m" >&0 ;;
-            *) echo -n "$status" >&0 ;;
+            PASS) echo -ne "\033[1;32m${status}\033[0m" ;;
+            FAIL) echo -ne "\033[1;31m${status}\033[0m" ;;
+            RUN) echo -ne "\033[1;34m${status} \033[0m" ;;
+            MARK) echo -ne "\033[1;90m${status}\033[0m" ;;
+            *) echo -n "$status" ;;
         esac
-        echo " $TEF_PREFIX/$name" >&0
+        echo " $TEF_PREFIX/$name"
     else
-        echo "$status $TEF_PREFIX/$name" 2>/dev/null >&0
+        echo "$status $TEF_PREFIX/$name" 2>/dev/null
     fi
 
     if [ -n "$TEF_RESULTS_FD" ]; then
