@@ -38,13 +38,18 @@ static char *sane_arg(char *a)
 
 int for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
-    struct exec_state state = { 0 };
+    struct exec_state *state;
+    if ((state = create_exec_state(opts)) == NULL) {
+        PERROR("create_exec_state");
+        return -1;
+    }
 
     // [0] is execute-reserved for argv[0],
     // [1] is the one non-merged arg
     // [2] is NULL terminator
     char *arg[3] = { NULL };
 
+    char *prefix = NULL;
     for (int i = 0; i < argc; i++) {
         char *sane = sane_arg(argv[i]);
         if (!sane) {
@@ -57,30 +62,43 @@ int for_each_arg(int argc, char **argv, struct tef_runner_opts *opts)
         // standalone arg, just execute it without args
         if (!slash) {
             arg[1] = NULL;
-            execute(sane, EXEC_TYPE_UNKNOWN, arg, opts, &state);
+            if (execute(sane, EXEC_TYPE_UNKNOWN, arg, opts, state) == -1)
+                goto err;
             continue;
         }
 
         ptrdiff_t prefix_len = slash-sane;
-        char *prefix = strndup(sane, prefix_len);
+        prefix = strndup(sane, prefix_len);
         if (prefix == NULL) {
             PERROR("strndup");
-            return -1;
+            goto err;
         }
 
         arg[1] = sane+prefix_len+1;  // skip prefix + '/'
-        execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts, &state);
+        if (execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts, state) == -1)
+            goto err;
 
         free(prefix);
+        prefix = NULL;
     }
 
-    return state.failed;
+    return destroy_exec_state(state);
+
+err:
+    free(prefix);
+    destroy_exec_state(state);
+    return -1;
 }
 
 int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 {
     char **merged;
-    struct exec_state state = { 0 };
+    struct exec_state *state;
+
+    if ((state = create_exec_state(opts)) == NULL) {
+        PERROR("create_exec_state");
+        return -1;
+    }
 
     // +2 is for argv[0] and terminating NULL ptr
     if ((merged = malloc((argc+2)*sizeof(argv))) == NULL) {
@@ -109,7 +127,8 @@ int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
             // or if prefix (incl. '/' after it) doesn't match
             if (!slash || (sane && (strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/'))) {
                 // finish merge; process previously merged args
-                execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
+                if (execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, state) == -1)
+                    goto err;
                 free(prefix);
                 prefix = NULL;
                 merged_idx = 1;
@@ -124,7 +143,8 @@ int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
         // standalone arg, just execute it, don't merge
         if (!slash) {
-            execute(sane, EXEC_TYPE_UNKNOWN, merged, opts, &state);
+            if (execute(sane, EXEC_TYPE_UNKNOWN, merged, opts, state) == -1)
+                goto err;
             continue;
         }
 
@@ -145,14 +165,16 @@ int for_each_merged_arg(int argc, char **argv, struct tef_runner_opts *opts)
 
     // finish any merge-in-progress, execute it
     if (prefix)
-        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
+        if (execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, state) == -1)
+            goto err;
 
-    return state.failed;
-
-err:
-    if (prefix)
-        execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, &state);
     free(prefix);
     free(merged);
+    return destroy_exec_state(state);
+
+err:
+    free(prefix);
+    free(merged);
+    destroy_exec_state(state);
     return -1;
 }

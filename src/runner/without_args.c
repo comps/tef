@@ -16,6 +16,13 @@
 
 #include "common.h"
 
+// used to wrap enum exec_entry_type into an dirent-like
+// structure, for convenience
+struct exec_entry {
+    enum exec_entry_type type;
+    char name[256];  // same as struct dirent
+};
+
 static int exec_entry_sort_cmp(const void *a, const void *b)
 {
     const struct exec_entry *enta = a, *entb = b;
@@ -150,18 +157,33 @@ int for_each_exec(struct tef_runner_opts *opts)
 {
     struct exec_entry **ents;
     int cnt;
-    struct exec_state state = { 0 };
+
+    struct exec_state *state;
+    if ((state = create_exec_state(opts)) == NULL) {
+        PERROR("create_exec_state");
+        return -1;
+    }
 
     cnt = find_execs(&ents, opts->argv0, opts->ignore_files);
     if (cnt == -1)
         return -1;
 
     char *argv[2] = { NULL };
-    for (int i = 0; i < cnt; i++) {
-        execute(ents[i]->name, ents[i]->type, argv, opts, &state);
+    int i;
+    for (i = 0; i < cnt; i++) {
+        if (execute(ents[i]->name, ents[i]->type, argv, opts, state) == -1)
+            goto err;
         free(ents[i]);
     }
-    free(ents);
 
-    return state.failed;
+    free(ents);
+    return destroy_exec_state(state);
+
+err:
+    free(ents[i]);
+    for (; i < cnt; i++)
+        free(ents[i]);
+    free(ents);
+    destroy_exec_state(state);
+    return -1;
 }

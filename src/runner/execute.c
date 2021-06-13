@@ -16,6 +16,7 @@
 
 #include "common.h"
 
+// retry on EINTR
 static pid_t waitpid_safe(pid_t pid, int *wstatus, int options)
 {
     pid_t ret;
@@ -26,9 +27,7 @@ static pid_t waitpid_safe(pid_t pid, int *wstatus, int options)
     return ret;
 }
 
-// return exit code for the child process
-// or never return if execve() succeeds
-static int execute_child(char **argv, char *dir)
+static _Noreturn void execute_child(char **argv, char *dir)
 {
     char *tmp = NULL;
     int logfd = -1;
@@ -130,14 +129,89 @@ static int execute_child(char **argv, char *dir)
     }
 
     // this shouldn't be reachable,
-    // so fall through to 'err' and return failure
+    // so fall through to 'err' and exit with failure
 err:
     free(tmp);
     close(logfd);
     close(errout);
-    return 1;
+    exit(1);
 #undef ERROR_FD
 #define ERROR_FD DEFAULT_ERROR_FD
+}
+
+static int start_job(pid_t pid, char *name, struct exec_state *state)
+{
+    if (tef_report("RUN", name) == -1)
+        return -1;
+    // find a (guaranteed) free slot in pid-to-name map and use it up
+    struct pid_to_name *map = state->map;
+    int i;
+    for (i = 0; map[i].pid != -1; i++);
+    map[i].pid = pid;
+    map[i].name = name;
+    state->running_jobs++;
+    return 0;
+}
+static int finish_job(pid_t pid, struct exec_state *state, int exitcode)
+{
+    struct pid_to_name *map = state->map;
+    // since we always use the first found '-1', it is guaranteed that we'll
+    // find our pid on idx < running_jobs, or not at all
+    int i, maxjobs = state->running_jobs;
+    for (i = 0; i < maxjobs && map[i].pid != pid; i++);
+    if (i >= maxjobs) {
+        ERROR_FMT("pid %d not ours", pid);
+        // technically not our problem, we can just skip it
+        return 0;
+    }
+    char *status = exitcode == 0 ? "PASS" : "FAIL";
+    int report_rc = tef_report(status, map[i].name);
+    // TODO: won't be needed once free() guarantees no errno changes
+    int report_errno = errno;
+    // reset the entry
+    free(map[i].name);
+    map[i].pid = -1;
+    state->running_jobs--;
+    errno = report_errno;
+    return report_rc;
+}
+
+// allocate enough for exec_state itself + for all the pid-to-name
+// mappings we'll ever need (there won't be more than opts->jobs children)
+struct exec_state *create_exec_state(struct tef_runner_opts *opts)
+{
+    struct exec_state *state;
+    state = malloc(sizeof(struct exec_state)
+                   + sizeof(struct pid_to_name) * opts->jobs);
+    if (state != NULL) {
+        state->running_jobs = 0;
+        struct pid_to_name empty = { -1, NULL };
+        for (int i = 0; i < opts->jobs; i++) {
+            memcpy(&state->map[i], &empty, sizeof(empty));
+        }
+    }
+    return state;
+}
+int destroy_exec_state(struct exec_state *state)
+{
+    int ret = 0;
+    pid_t child;
+    int wstatus;
+    // finish all jobs
+    while (state->running_jobs-- > 0) {
+        if ((child = waitpid_safe(-1, &wstatus, 0)) > 0) {
+            // yes, this can repeatedly call finish_job() on error,
+            // but what's the worst that can happen? .. we'd need to
+            // collect all children later in this func anyway
+            if (finish_job(child, state, WEXITSTATUS(wstatus)) == -1)
+                ret = -1;
+        } else {
+            PERROR("waitpid");
+            ret = -1;
+        }
+    }
+    free(state);
+    return ret;
 }
 
 // execute an executable file in CWD or a directory with an executable file
@@ -150,7 +224,6 @@ int execute(char *file, enum exec_entry_type typehint, char **argv,
     if (typehint == EXEC_TYPE_UNKNOWN) {
         if (fstatat_type(AT_FDCWD, file, &typehint) == -1) {
             PERROR_FMT("fstatat %s", file);
-            //state->failed = true;
             return -1;
         }
     }
@@ -170,37 +243,44 @@ int execute(char *file, enum exec_entry_type typehint, char **argv,
             return -1;
     }
 
-    // reap any zombies that already exited
+    // reap any zombies that already exited between execute() calls
     pid_t child;
     int wstatus;
-    while ((child = waitpid_safe(-1, &wstatus, WNOHANG)) > 0) {
-        state->running_jobs--;
-        if (WEXITSTATUS(child) != 0)
-            state->failed = true;
-    }
+    while ((child = waitpid_safe(-1, &wstatus, WNOHANG)) > 0)
+        if (finish_job(child, state, WEXITSTATUS(wstatus)) == -1)
+            return -1;
     if (child == -1) {
         PERROR("waitpid WNOHANG");
         return -1;
     }
 
-    switch (fork()) {
+    // duplicate filename for storage in pid<->testname map array
+    // this belongs to start_job(), but we don't want to deal with a fork()ed
+    // child if this fails, so do it early
+    char *name_duped;
+    if ((name_duped = strdup(file)) == NULL) {
+        PERROR("strdup");
+        return -1;
+    }
+
+    child = fork();
+    switch (child) {
         case -1:
             return -1;
         case 0:
-            exit(execute_child(argv, child_dir));
+            execute_child(argv, child_dir);
             break;
         default:
-            state->running_jobs++;
+            if (start_job(child, name_duped, state) == -1)
+                return -1;
             break;
     }
 
     // if we're at maximum of running jobs, block until one exits
     if (state->running_jobs >= opts->jobs) {
-        child = waitpid_safe(-1, &wstatus, 0);
-        if (child > 0) {
-            state->running_jobs--;
-            if (WEXITSTATUS(child) != 0)
-                state->failed = true;
+        if ((child = waitpid_safe(-1, &wstatus, 0)) > 0) {
+            if (finish_job(child, state, WEXITSTATUS(wstatus)) == -1)
+                return -1;
         } else {
             PERROR("waitpid");
             return -1;

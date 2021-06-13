@@ -125,3 +125,31 @@
 - mention in TEF.md that log rotation should go from .log to .1.log,
   without .0.log
   - also mention that the rotated logs must use only a single digit
+
+- adjust TEF.md - do not propagate failures upwards
+  - as a runner, if an executable fails, only record the FAIL result,
+    do not exit with non-zero
+  - exit with non-zero only if the logic internal to the runner fails
+    (ie. command not found)
+  - provide rationale in Rationale.md
+    - propagating requires extra boilerplate code - tracking overall
+      failed=1 state
+    - propagating provides little real value - yes, external logic can
+      check exit code of the topmost runner, but it might as well grep
+      result.log for ^FAIL
+      - relying on fail propagation is bug-prone; a runner might fail to
+        exit non-0 due to it being a rare condition, causing the whole
+        run to be considered successful despite FAILs in result.log
+    - reporting runner status separately (via exit code) lets us
+      differentiate between failure in the runner itself (maybe it has
+      its own test code) and any sub-runners
+      - this could also be done by ie. an ERROR status (exit code 2), but
+        it would bring extra requirements on exit code into the spec
+    - external auto-waiving logic would need to be parent-aware and waive
+      any parents of failed children if all children are either PASS or
+      have known issues
+      - this again makes us unable to distinguish a genuine FAIL in the
+        parent runner logic and a FAIL due to one of its children FAILing
+
+- add example showing how to post-process results
+  - see ospp-kickstart-test-suite
