@@ -180,7 +180,6 @@ int for_each_exec(struct tef_runner_opts *opts)
     return destroy_exec_state(state);
 
 err:
-    free(ents[i]);
     for (; i < cnt; i++)
         free(ents[i]);
     free(ents);
