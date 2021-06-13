@@ -94,10 +94,17 @@ static _Noreturn void execute_child(char **argv, char *dir)
         testname = argv[0];
     }
 
+    // open a log file, duplicate it to "stderr"
     if ((logfd = tef_mklog(testname)) == -1) {
         PERROR_FMT("tef_mklog(%s)", testname);
         goto err;
     }
+    if (dup2(logfd, DEFAULT_ERROR_FD) == -1) {
+        PERROR_FMT("dup2(%d," STRINGIFY(DEFAULT_ERROR_FD) ")", logfd);
+        goto err;
+    }
+    close(logfd);
+    logfd = -1;
 
     if (dir) {
         if (chdir(dir) == -1) {
@@ -250,7 +257,7 @@ int execute(char *file, enum exec_entry_type typehint, char **argv,
     while ((child = waitpid_safe(-1, &wstatus, WNOHANG)) > 0)
         if (finish_job(child, state, WEXITSTATUS(wstatus)) == -1)
             return -1;
-    if (child == -1) {
+    if (child == -1 && errno != ECHILD) {
         PERROR("waitpid WNOHANG");
         return -1;
     }

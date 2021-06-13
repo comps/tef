@@ -110,6 +110,8 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
     if (tef_prefix) {
         tef_prefix_len = strlen(tef_prefix);
         line_len += tef_prefix_len + 1;  // incl. '/' suffix
+    } else {
+        line_len += 1;  // just the leading '/'
     }
 
     char *line = malloc(line_len);
@@ -127,10 +129,9 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
         part = memcpy_append(part, status, status_len);
     }
     *part++ = ' ';
-    if (tef_prefix) {
+    if (tef_prefix)
         part = memcpy_append(part, tef_prefix, tef_prefix_len);
-        *part++ = '/';
-    }
+    *part++ = '/';
     part = memcpy_append(part, name, name_len);
     *part++ = '\n';
     *part = '\0';
