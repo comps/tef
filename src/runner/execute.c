@@ -157,7 +157,7 @@ static int finish_job(pid_t pid, struct exec_state *state, int exitcode)
     struct pid_to_name *map = state->map;
     // since we always use the first found '-1', it is guaranteed that we'll
     // find our pid on idx < running_jobs, or not at all
-    int i, maxjobs = state->running_jobs;
+    int i, maxjobs = state->max_jobs;
     for (i = 0; i < maxjobs && map[i].pid != pid; i++);
     if (i >= maxjobs) {
         ERROR_FMT("pid %d not ours", pid);
@@ -184,9 +184,10 @@ struct exec_state *create_exec_state(struct tef_runner_opts *opts)
     state = malloc(sizeof(struct exec_state)
                    + sizeof(struct pid_to_name) * opts->jobs);
     if (state != NULL) {
+        state->max_jobs = opts->jobs;
         state->running_jobs = 0;
         struct pid_to_name empty = { -1, NULL };
-        for (int i = 0; i < opts->jobs; i++) {
+        for (int i = 0; i < state->max_jobs; i++) {
             memcpy(&state->map[i], &empty, sizeof(empty));
         }
     }
@@ -277,7 +278,7 @@ int execute(char *file, enum exec_entry_type typehint, char **argv,
     }
 
     // if we're at maximum of running jobs, block until one exits
-    if (state->running_jobs >= opts->jobs) {
+    if (state->running_jobs >= state->max_jobs) {
         if ((child = waitpid_safe(-1, &wstatus, 0)) > 0) {
             if (finish_job(child, state, WEXITSTATUS(wstatus)) == -1)
                 return -1;

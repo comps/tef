@@ -27,6 +27,7 @@ struct pid_to_name {
 };
 // used across repeated execute() calls to track state
 struct exec_state {
+    int max_jobs;
     int running_jobs;
     struct pid_to_name map[];
 };
