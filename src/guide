@@ -1,13 +1,9 @@
 
-- log creation
-  - rotation
-  - TEF_LOGS
 
 - MARK result
   - done using alarm(2)
   - make sure any other code is interrupt-safe (ie. waitpid) and re-tries what it was doing
     if interrupted by a signal
-
 
 
 
@@ -153,3 +149,15 @@
 
 - add example showing how to post-process results
   - see ospp-kickstart-test-suite
+
+- add example on how to hack/extend reported results
+  - ie. add time elapsed for each result
+  - since the test name is unparsed string, a suite could easily do custom
+    format within the test name field, ie. instead of
+      PASS \t /some/test/name \n
+    do
+      PASS \t 1.567 \t /some/test/name \n
+    which is a perfectly valid result as far as TEF is concerned, the
+    timestamp is treated as part of the test name
+    - though one might need custom tef_report() that doesn't auto-prepend
+      TEF_PREFIX

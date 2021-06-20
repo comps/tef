@@ -81,29 +81,14 @@ static ssize_t write_safe_locked(int fd, const void *buf, size_t count)
     return rc;
 }
 
-#define CLGREEN "\e[1;32m"
-#define CLRED   "\e[1;31m"
-#define CLBLUE  "\e[1;34m"
-#define CLGRAY  "\e[1;90m"
-#define CLRESET "\e[0m"
-// avoid strlen
-#define CLLEN sizeof(CLGREEN)-1
-#define CLRESETLEN sizeof(CLRESET)-1
-
 // allocate and return a line buffer
-static char *format_line(char *status, char *name, size_t *len, char *color)
+static char *format_line(char *status, char *name, size_t *len)
 {
     size_t status_len = strlen(status);
     size_t name_len = strlen(name);
 
-    size_t line_len;
-    if (color) {
-        // color, status, color rst, space, name, '\n', '\0'
-        line_len = CLLEN + status_len + CLRESETLEN + name_len + 3;
-    } else {
-        // status, space, name, '\n', '\0'
-        line_len = status_len + name_len + 3;
-    }
+    // status, ' ', name, '\n', '\0'
+    size_t line_len = status_len + name_len + 3;
 
     char *tef_prefix = getenv("TEF_PREFIX");
     size_t tef_prefix_len = 0;
@@ -121,13 +106,7 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
     }
 
     char *part = line;
-    if (color) {
-        part = memcpy_append(part, color, CLLEN);
-        part = memcpy_append(part, status, status_len);
-        part = memcpy_append(part, CLRESET, CLRESETLEN);
-    } else {
-        part = memcpy_append(part, status, status_len);
-    }
+    part = memcpy_append(part, status, status_len);
     *part++ = ' ';
     if (tef_prefix)
         part = memcpy_append(part, tef_prefix, tef_prefix_len);
@@ -140,14 +119,18 @@ static char *format_line(char *status, char *name, size_t *len, char *color)
     return line;
 }
 
-// status match, pretty name, color
-static char *status_colors[][3] = {
-    { "PASS", "PASS", CLGREEN },
-    { "FAIL", "FAIL", CLRED   },
-    { "RUN",  "RUN ", CLBLUE  },
-    { "MARK", "MARK", CLGRAY  },
+#define CLGREEN "\e[1;32m"
+#define CLRED   "\e[1;31m"
+#define CLBLUE  "\e[1;34m"
+#define CLGRAY  "\e[1;90m"
+#define CLRESET "\e[0m"
+static char *status_rewrites[][2] = {
+    { "PASS", CLGREEN "PASS" CLRESET },
+    { "FAIL", CLRED "FAIL" CLRESET },
+    { "RUN", CLBLUE "RUN" CLRESET " " },
+    { "MARK", CLGRAY "MARK" CLRESET },
 };
-#define STATUSLEN sizeof(status_colors)/sizeof(*status_colors)
+#define REWRITES_CNT sizeof(status_rewrites)/sizeof(*status_rewrites)
 
 // don't use STDOUT_FILENO as the standard specifies numbers
 #define TERMINAL_FD 1
@@ -156,16 +139,14 @@ __asm__(".symver tef_report_v0, tef_report@@VERS_0");
 int tef_report_v0(char *status, char *name)
 {
     char *status_pretty = status;
-    char *color = NULL;
 
     // if fd 1 is terminal, look up status color
     // if not or if status is unknown, color remains NULL --> no color codes
     bool isterm = is_terminal(TERMINAL_FD);
     if (isterm) {
-        for (unsigned long i = 0; i < STATUSLEN; i++) {
-            if (strcmp(status_colors[i][0], status)==0) {
-                status_pretty = status_colors[i][1];
-                color = status_colors[i][2];
+        for (unsigned long i = 0; i < REWRITES_CNT; i++) {
+            if (strcmp(status_rewrites[i][0], status)==0) {
+                status_pretty = status_rewrites[i][1];
                 break;
             }
         }
@@ -173,7 +154,7 @@ int tef_report_v0(char *status, char *name)
 
     // write to stdout
     size_t len;
-    char *line = format_line(status_pretty, name, &len, color);
+    char *line = format_line(status_pretty, name, &len);
     if (!line)
         goto err;
 
@@ -185,13 +166,13 @@ int tef_report_v0(char *status, char *name)
     if (tef_results_fd) {
         int fd = atoi(tef_results_fd);
         if (fd > 0) {
-            if (!color) {
+            if (status_pretty == status) {
                 // black'n'white line already formatted
                 if (write_safe_locked(fd, line, len) == -1)
                     goto err;
             } else {
                 free(line);
-                line = format_line(status_pretty, name, &len, NULL);
+                line = format_line(status, name, &len);
                 if (!line)
                     goto err;
                 if (write_safe_locked(fd, line, len) == -1)
