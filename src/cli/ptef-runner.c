@@ -13,8 +13,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef.h>
-#include <tef_helpers.h>
+#include <ptef.h>
+#include <ptef_helpers.h>
 
 static void print_help(void)
 {
@@ -24,7 +24,7 @@ static void print_help(void)
 
 int main(int argc, char **argv)
 {
-    struct tef_runner_opts opts = { 0 };
+    struct ptef_runner_opts opts = { 0 };
 
     int ignored_cnt = 1;  // terminating NULL
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     if (!opts.argv0)
         opts.argv0 = basename(argv[0]);
 
-    switch (tef_runner(argc-optind, argv+optind, &opts)) {
+    switch (ptef_runner(argc-optind, argv+optind, &opts)) {
         // success
         case 0:
             return 0;

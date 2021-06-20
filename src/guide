@@ -26,15 +26,15 @@
   - alarm can interrupt anywhere
   - incl. waitpid in runner
 
-- pipe support for tef_mklog (?)
-  - instead of creating logfile to be used by runner that called tef_mklog,
+- pipe support for ptef_mklog (?)
+  - instead of creating logfile to be used by runner that called ptef_mklog,
     provide writing to log automatically
-  - could abstract TEF_DEBUG_OUTPUT functionality so runner doesn't have to care
+  - could abstract PTEF_DEBUG_OUTPUT functionality so runner doesn't have to care
 
 - bash builtin - try getenv on BASH_ARGV0 to avoid '-a $(basename $0)'
   - bash 5.0 .. :/
 
-- write reasonable perror messages, prefix with 'tef: ', etc.
+- write reasonable perror messages, prefix with 'ptef: ', etc.
 
 - optimize with -O2 and add LTO
 
@@ -42,12 +42,12 @@
 
 - check fox max CLI length, split arguments across runner calls,
   OR document that this is missing
-  - add this to TEF.md
+  - add this to PTEF.md
   - ACTUALLY this should never happen; we only pass args if parent (user)
     gave us args and, in that case, all our args already must fit within
     the limit, even if we don't merge
 
-- adjust TEF.md to say that invalid (insane) arg must stop arg merging and the
+- adjust PTEF.md to say that invalid (insane) arg must stop arg merging and the
   runner with exit with non-0 without running anything beyond the invalid arg
   **or running anything beyond the bad arg**
   - this greatly simplifies merging algo
@@ -59,19 +59,19 @@
       executable, treat it as an error (finish with non-0 in the end),
       and continue on
 
-- adjust TEF.md w.r.t. terminal detection
+- adjust PTEF.md w.r.t. terminal detection
   - don't check terminal colors, it's really nonstandard
   - simply: if terminal, assume it supports >=16 colors, else no colors
 
-- re-do fd0 handling in TEF.md
+- re-do fd0 handling in PTEF.md
   - use stdout instead of fd 0, rely on executables not being too noisy,
     maybe mention that this stdout result reporting may be unrealiable
     for machine parsing (due to possibly noisy execs)
-  - leave TEF_RESULTS_FD as-is, color-less, for reliable reporting
+  - leave PTEF_RESULTS_FD as-is, color-less, for reliable reporting
   - when executing, redirect only stderr to log, leave stdout on console
   - TODO fix 'LOOP_FD' hacks in ospp-kickstart-test-suite
 
-- add to TEF.md a section mentioning RFC2119 (must, should, etc. language)
+- add to PTEF.md a section mentioning RFC2119 (must, should, etc. language)
   - Background & Rationale
   - The Core Idea
     - any executable can be a runner
@@ -105,25 +105,25 @@
   - caller can then choose to free the passed ptr on fail
     or continue on without new element added
 
-- include guards (for multiple-inclusion) in tef.h
+- include guards (for multiple-inclusion) in ptef.h
 
-- mention in TEF.md that TEF_LOGS directory:
+- mention in PTEF.md that PTEF_LOGS directory:
   - MUST be created if it doesn't exist
   - its parents SHOULD NOT be created (error condition caused instead)
-  - paths inside TEF_LOGS however SHOULD be created incl. parents
+  - paths inside PTEF_LOGS however SHOULD be created incl. parents
     - so that parent runners don't have to support log creation
 
-- mention in TEF.md that a non-empty TEF_PREFIX must start with a '/'
+- mention in PTEF.md that a non-empty PTEF_PREFIX must start with a '/'
 
-- mention in TEF.md (or elsewhere) that runner implementations should not
-  use the TEF_* env variable namespace for out-of-spec features as this
+- mention in PTEF.md (or elsewhere) that runner implementations should not
+  use the PTEF_* env variable namespace for out-of-spec features as this
   may lead to name clashes with future spec versions
 
-- mention in TEF.md that log rotation should go from .log to .1.log,
+- mention in PTEF.md that log rotation should go from .log to .1.log,
   without .0.log
   - also mention that the rotated logs must use only a single digit
 
-- adjust TEF.md - do not propagate failures upwards
+- adjust PTEF.md - do not propagate failures upwards
   - as a runner, if an executable fails, only record the FAIL result,
     do not exit with non-zero
   - exit with non-zero only if the logic internal to the runner fails
@@ -158,10 +158,10 @@
       PASS \t /some/test/name \n
     do
       PASS \t 1.567 \t /some/test/name \n
-    which is a perfectly valid result as far as TEF is concerned, the
+    which is a perfectly valid result as far as PTEF is concerned, the
     timestamp is treated as part of the test name
-    - though one might need custom tef_report() that doesn't auto-prepend
-      TEF_PREFIX
+    - though one might need custom ptef_report() that doesn't auto-prepend
+      PTEF_PREFIX
 
-- mention in TEF.md that symbolic links should always be followed
+- mention in PTEF.md that symbolic links should always be followed
   - both symlinks to executable files *and* symlinks to subdirectories

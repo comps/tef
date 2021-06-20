@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef.h>
+#include <ptef.h>
 
 static void print_help(void)
 {
@@ -40,10 +40,10 @@ int main(int argc, char **argv)
         //    exit(EXIT_FAILURE);
     }
 #endif
-    if (argc < 3) {
+    if (argc < 2) {
         print_help();
         return 1;
     }
 
-    return !!tef_report(argv[1], argv[2]);
+    return ptef_mklog(argv[1]) == -1 ? 1 : 0;
 }

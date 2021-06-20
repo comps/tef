@@ -1,5 +1,5 @@
 VERS_0 {
-  global: tef_runner; tef_report; tef_mklog;
+  global: ptef_runner; ptef_report; ptef_mklog;
   local: *;
 };
 

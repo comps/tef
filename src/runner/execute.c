@@ -11,8 +11,8 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
-#include <tef.h>
-#include <tef_helpers.h>
+#include <ptef.h>
+#include <ptef_helpers.h>
 
 #include "common.h"
 
@@ -48,45 +48,45 @@ static _Noreturn void execute_child(char **argv, char *dir)
     char *testname;
 
     if (dir) {
-        char *tef_prefix = getenv("TEF_PREFIX");
-        if (!tef_prefix)
-            tef_prefix = "";
+        char *ptef_prefix = getenv("PTEF_PREFIX");
+        if (!ptef_prefix)
+            ptef_prefix = "";
 
         char *pos;
 
-        // add the current testname (subdir name) to TEF_PREFIX
+        // add the current testname (subdir name) to PTEF_PREFIX
         testname = dir;
         size_t testname_len = strlen(testname);
-        size_t tef_prefix_len = strlen(tef_prefix);
+        size_t ptef_prefix_len = strlen(ptef_prefix);
         // +2 for '/' and '\0'
-        if ((tmp = malloc(tef_prefix_len+testname_len+2)) == NULL) {
+        if ((tmp = malloc(ptef_prefix_len+testname_len+2)) == NULL) {
             PERROR("malloc");
             goto err;
         }
-        pos = memcpy_append(tmp, tef_prefix, tef_prefix_len);
+        pos = memcpy_append(tmp, ptef_prefix, ptef_prefix_len);
         *pos++ = '/';
         pos = memcpy_append(pos, testname, testname_len);
         *pos = '\0';
-        if (setenv("TEF_PREFIX", tmp, 1) == -1) {
-            PERROR("setenv(TEF_PREFIX, ..)");
+        if (setenv("PTEF_PREFIX", tmp, 1) == -1) {
+            PERROR("setenv(PTEF_PREFIX, ..)");
             goto err;
         }
 
-        // if TEF_LOGS has relative path, prepend '../'
-        char *tef_logs = getenv("TEF_LOGS");
-        if (tef_logs && *tef_logs != '\0' && *tef_logs != '/') {
+        // if PTEF_LOGS has relative path, prepend '../'
+        char *ptef_logs = getenv("PTEF_LOGS");
+        if (ptef_logs && *ptef_logs != '\0' && *ptef_logs != '/') {
             free(tmp);
-            size_t tef_logs_len = strlen(tef_logs);
+            size_t ptef_logs_len = strlen(ptef_logs);
             // +4 for '../' and '\0'
-            if ((tmp = malloc(tef_logs_len+4)) == NULL) {
+            if ((tmp = malloc(ptef_logs_len+4)) == NULL) {
                 PERROR("malloc");
                 goto err;
             }
             pos = memcpy_append(tmp, "../", 3);
-            pos = memcpy_append(pos, tef_logs, tef_logs_len);
+            pos = memcpy_append(pos, ptef_logs, ptef_logs_len);
             *pos = '\0';
-            if (setenv("TEF_LOGS", tmp, 1) == -1) {
-                PERROR("setenv(TEF_LOGS, ..)");
+            if (setenv("PTEF_LOGS", tmp, 1) == -1) {
+                PERROR("setenv(PTEF_LOGS, ..)");
                 goto err;
             }
         }
@@ -95,8 +95,8 @@ static _Noreturn void execute_child(char **argv, char *dir)
     }
 
     // open a log file, duplicate it to "stderr"
-    if ((logfd = tef_mklog(testname)) == -1) {
-        PERROR_FMT("tef_mklog(%s)", testname);
+    if ((logfd = ptef_mklog(testname)) == -1) {
+        PERROR_FMT("ptef_mklog(%s)", testname);
         goto err;
     }
     if (dup2(logfd, DEFAULT_ERROR_FD) == -1) {
@@ -148,7 +148,7 @@ err:
 
 static int start_job(pid_t pid, char *name, struct exec_state *state)
 {
-    if (tef_report("RUN", name) == -1)
+    if (ptef_report("RUN", name) == -1)
         return -1;
     // find a (guaranteed) free slot in pid-to-name map and use it up
     struct pid_to_name *map = state->map;
@@ -172,7 +172,7 @@ static int finish_job(pid_t pid, struct exec_state *state, int exitcode)
         return 0;
     }
     char *status = exitcode == 0 ? "PASS" : "FAIL";
-    int report_rc = tef_report(status, map[i].name);
+    int report_rc = ptef_report(status, map[i].name);
     // TODO: won't be needed once free() guarantees no errno changes
     int report_errno = errno;
     // reset the entry
@@ -185,7 +185,7 @@ static int finish_job(pid_t pid, struct exec_state *state, int exitcode)
 
 // allocate enough for exec_state itself + for all the pid-to-name
 // mappings we'll ever need (there won't be more than opts->jobs children)
-struct exec_state *create_exec_state(struct tef_runner_opts *opts)
+struct exec_state *create_exec_state(struct ptef_runner_opts *opts)
 {
     struct exec_state *state;
     state = malloc(sizeof(struct exec_state)
@@ -227,7 +227,7 @@ int destroy_exec_state(struct exec_state *state)
 // - argv must have [0] allocated and unused (to be used for argv[0])
 //   and be terminated at [1] or later with NULL
 int execute(char *file, enum exec_entry_type typehint, char **argv,
-            struct tef_runner_opts *opts, struct exec_state *state)
+            struct ptef_runner_opts *opts, struct exec_state *state)
 {
     if (typehint == EXEC_TYPE_UNKNOWN) {
         if (fstatat_type(AT_FDCWD, file, &typehint) == -1) {

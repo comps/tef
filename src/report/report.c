@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef_helpers.h>
+#include <ptef_helpers.h>
 
 // in case we get interrupted by a signal
 static int intr_safe_setlkw(int fd, struct flock *f)
@@ -90,11 +90,11 @@ static char *format_line(char *status, char *name, size_t *len)
     // status, ' ', name, '\n', '\0'
     size_t line_len = status_len + name_len + 3;
 
-    char *tef_prefix = getenv("TEF_PREFIX");
-    size_t tef_prefix_len = 0;
-    if (tef_prefix) {
-        tef_prefix_len = strlen(tef_prefix);
-        line_len += tef_prefix_len + 1;  // incl. '/' suffix
+    char *ptef_prefix = getenv("PTEF_PREFIX");
+    size_t ptef_prefix_len = 0;
+    if (ptef_prefix) {
+        ptef_prefix_len = strlen(ptef_prefix);
+        line_len += ptef_prefix_len + 1;  // incl. '/' suffix
     } else {
         line_len += 1;  // just the leading '/'
     }
@@ -108,8 +108,8 @@ static char *format_line(char *status, char *name, size_t *len)
     char *part = line;
     part = memcpy_append(part, status, status_len);
     *part++ = ' ';
-    if (tef_prefix)
-        part = memcpy_append(part, tef_prefix, tef_prefix_len);
+    if (ptef_prefix)
+        part = memcpy_append(part, ptef_prefix, ptef_prefix_len);
     *part++ = '/';
     part = memcpy_append(part, name, name_len);
     *part++ = '\n';
@@ -135,8 +135,8 @@ static char *status_rewrites[][2] = {
 // don't use STDOUT_FILENO as the standard specifies numbers
 #define TERMINAL_FD 1
 
-__asm__(".symver tef_report_v0, tef_report@@VERS_0");
-int tef_report_v0(char *status, char *name)
+__asm__(".symver ptef_report_v0, ptef_report@@VERS_0");
+int ptef_report_v0(char *status, char *name)
 {
     char *status_pretty = status;
 
@@ -161,10 +161,10 @@ int tef_report_v0(char *status, char *name)
     if (write_safe_locked(TERMINAL_FD, line, len) == -1)
         goto err;
 
-    // duplicate write to TEF_RESULTS_FD
-    char *tef_results_fd = getenv("TEF_RESULTS_FD");
-    if (tef_results_fd) {
-        int fd = atoi(tef_results_fd);
+    // duplicate write to PTEF_RESULTS_FD
+    char *ptef_results_fd = getenv("PTEF_RESULTS_FD");
+    if (ptef_results_fd) {
+        int fd = atoi(ptef_results_fd);
         if (fd > 0) {
             if (status_pretty == status) {
                 // black'n'white line already formatted

@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef_helpers.h>
+#include <ptef_helpers.h>
 
 // rotate old logs, create new one, return its fd
 static int open_log(int dirfd, char *testname)
@@ -159,37 +159,37 @@ err:
     return -1;
 }
 
-// open/create TEF_LOGS, create path inside it, open final leaf dir
-static int open_tef_logs(char *tef_logs, char *tef_prefix)
+// open/create PTEF_LOGS, create path inside it, open final leaf dir
+static int open_ptef_logs(char *ptef_logs, char *ptef_prefix)
 {
     char *combined = NULL;
 
     // try opening it, create if necessary
-    int logsfd = open_create_dir(tef_logs);
+    int logsfd = open_create_dir(ptef_logs);
     if (logsfd == -1)
         goto err;
 
-    if (!tef_prefix)
-        tef_prefix = "";
+    if (!ptef_prefix)
+        ptef_prefix = "";
 
-    // 'mkdir -p' any directories inside TEF_LOGS
-    if (mkpath(logsfd, tef_prefix) == -1)
+    // 'mkdir -p' any directories inside PTEF_LOGS
+    if (mkpath(logsfd, ptef_prefix) == -1)
         goto err;
 
-    size_t tef_logs_len = strlen(tef_logs);
-    size_t tef_prefix_len = strlen(tef_prefix);
+    size_t ptef_logs_len = strlen(ptef_logs);
+    size_t ptef_prefix_len = strlen(ptef_prefix);
 
-    // concat TEF_LOGS + '/' + TEF_PREFIX + '\0'
-    combined = malloc(tef_logs_len+tef_prefix_len+2);
+    // concat PTEF_LOGS + '/' + PTEF_PREFIX + '\0'
+    combined = malloc(ptef_logs_len+ptef_prefix_len+2);
     if (combined == NULL) {
         PERROR("malloc");
         goto err;
     }
 
     char *pos = combined;
-    pos = memcpy_append(pos, tef_logs, tef_logs_len);
+    pos = memcpy_append(pos, ptef_logs, ptef_logs_len);
     *pos++ = '/';
-    pos = memcpy_append(pos, tef_prefix, tef_prefix_len);
+    pos = memcpy_append(pos, ptef_prefix, ptef_prefix_len);
     *pos = '\0';
 
     // open the concatenated result
@@ -209,14 +209,14 @@ err:
 }
 
 // create and open a log file for testname, return its fd
-__asm__(".symver tef_mklog_v0, tef_mklog@@VERS_0");
-int tef_mklog_v0(char *testname)
+__asm__(".symver ptef_mklog_v0, ptef_mklog@@VERS_0");
+int ptef_mklog_v0(char *testname)
 {
     int logsfd;
 
-    char *tef_logs = getenv("TEF_LOGS");
-    if (tef_logs && *tef_logs != '\0')
-        logsfd = open_tef_logs(tef_logs, getenv("TEF_PREFIX"));
+    char *ptef_logs = getenv("PTEF_LOGS");
+    if (ptef_logs && *ptef_logs != '\0')
+        logsfd = open_ptef_logs(ptef_logs, getenv("PTEF_PREFIX"));
     else
         logsfd = open_create_dir("logs");
 

@@ -11,8 +11,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <tef.h>
-#include <tef_helpers.h>
+#include <ptef.h>
+#include <ptef_helpers.h>
 
 #include "common.h"
 
@@ -143,7 +143,7 @@ err:
     return -1;
 }
 
-int for_each_exec(struct tef_runner_opts *opts)
+int for_each_exec(struct ptef_runner_opts *opts)
 {
     struct exec_entry **ents;
     int cnt;

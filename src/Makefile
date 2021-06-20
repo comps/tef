@@ -3,7 +3,7 @@
 #	$(MAKE) -C runner
 #report/report.a:
 #	$(MAKE) -C report
-#cli/tef-runner: runner/runner.a report/report.a
+#cli/ptef-runner: runner/runner.a report/report.a
 #	$(MAKE) -C cli
 
 .PHONY: all

@@ -1,4 +1,4 @@
-# Test Execution Framework (TEF)
+# POSIX-inspired Test Execution Framework (PTEF)
 
 A (fairly) simple specification and an example implementation of a test "runner"
 framework for system testing and/or integration and execution of test suites.
@@ -7,7 +7,7 @@ Currently still in active development (unstable API).
 
 ## Basic intro
 
-### What is TEF?
+### What is PTEF?
 
 A specification of API for test execution. It tells how to run tests/suites or
 (in general) any executables, how to manage and recurse into subtrees of tests,
@@ -15,11 +15,11 @@ how to report results, where and how to store output from tests, etc.
 All using standard POSIX interfaces.
 
 All of this could easily be created from scratch for an individual project,
-but TEF aims to render this unnecessary and unify simple test execution.
+but PTEF aims to render this unnecessary and unify simple test execution.
 
-### What isn't TEF?
+### What isn't PTEF?
 
-A test library. TEF doesn't provide any helper functions for tests themselves,
+A test library. PTEF doesn't provide any helper functions for tests themselves,
 only for management of their execution.
 
 ### Why should I want it?

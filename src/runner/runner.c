@@ -3,8 +3,8 @@
 #include "common.h"
 
 // true if everything PASSed, false on error or FAIL
-__asm__(".symver tef_runner_v0, tef_runner@@VERS_0");
-int tef_runner_v0(int argc, char **argv, struct tef_runner_opts *opts)
+__asm__(".symver ptef_runner_v0, ptef_runner@@VERS_0");
+int ptef_runner_v0(int argc, char **argv, struct ptef_runner_opts *opts)
 {
     // sanitize opts
     if (opts->jobs < 1)

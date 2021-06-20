@@ -1,22 +1,22 @@
 .PHONY: all
-all: tef-runner tef-report tef-mklog
+all: ptef-runner ptef-report ptef-mklog
 
 CFLAGS += -I../include -I../helpers -Wall -g
 
-tef-runner.o: tef-runner.c
-tef-report.o: tef-report.c
-tef-mklog.o: tef-mklog.c
+ptef-runner.o: ptef-runner.c
+ptef-report.o: ptef-report.c
+ptef-mklog.o: ptef-mklog.c
 
-tef-runner: tef-runner.o ../helpers/tef_helpers.o
-	$(CC) -L../lib -o $@ $^ -ltef
+ptef-runner: ptef-runner.o ../helpers/ptef_helpers.o
+	$(CC) -L../lib -o $@ $^ -lptef
 
-tef-report: tef-report.o
-	$(CC) -L../lib -o $@ $^ -ltef
+ptef-report: ptef-report.o
+	$(CC) -L../lib -o $@ $^ -lptef
 
-tef-mklog: tef-mklog.o
-	$(CC) -L../lib -o $@ $^ -ltef
+ptef-mklog: ptef-mklog.o
+	$(CC) -L../lib -o $@ $^ -lptef
 
 .PHONY: clean
 clean:
-	rm -f tef-runner.o tef-report.o tef-mklog.o
-	rm -f tef-runner tef-report tef-mklog
+	rm -f ptef-runner.o ptef-report.o ptef-mklog.o
+	rm -f ptef-runner ptef-report ptef-mklog

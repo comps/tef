@@ -1,10 +1,10 @@
 .PHONY: all
-all: libtef.so
+all: libptef.so
 
 # GNU LD
-libtef.so: ../helpers/*.o ../runner/*.o ../report/*.o ../mklog/*.o
-	$(CC) -shared -fPIC -Wl,--version-script=libtef.map -o $@ $^
+libptef.so: ../helpers/*.o ../runner/*.o ../report/*.o ../mklog/*.o
+	$(CC) -shared -fPIC -Wl,--version-script=libptef.map -o $@ $^
 
 .PHONY: clean
 clean:
-	rm -f libtef.so
+	rm -f libptef.so

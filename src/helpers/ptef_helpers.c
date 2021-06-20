@@ -6,7 +6,7 @@
 // malloc-less verbose perror()
 void perror_fd(int fd, const char *func, char *fileline, char *msg)
 {
-    char prefix[] = "tef error in ";
+    char prefix[] = "ptef error in ";
     char *err = strerror(errno);
     struct iovec iov[] = {
         { prefix, sizeof(prefix)-1 },
