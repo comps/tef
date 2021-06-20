@@ -1,7 +1,8 @@
 .PHONY: all
 all: ptef_helpers.o
 
-CFLAGS += -I../include -fPIC -Wall -g
+CFLAGS ?= -O2 -Wall -g
+CFLAGS += -I../include -fPIC
 
 ptef_helpers.o: ptef_helpers.c
 

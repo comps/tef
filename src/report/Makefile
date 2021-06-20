@@ -1,7 +1,8 @@
 .PHONY: all
 all: report.o
 
-CFLAGS += -I../include -I../helpers -fPIC -Wall -g
+CFLAGS ?= -O2 -Wall -g
+CFLAGS += -I../include -I../helpers -fPIC
 
 report.o: report.c
 
