@@ -82,23 +82,13 @@ find_execs(struct exec_entry ***entries, char *basename, char **ignored)
 
         enum exec_entry_type enttype;
 
-#if defined(_DIRENT_HAVE_D_TYPE) && defined(DT_REG) && defined(DT_DIR)
-        switch (dent->d_type) {
-            case DT_REG:
-                enttype = EXEC_TYPE_FILE;
-                break;
-            case DT_DIR:
-                enttype = EXEC_TYPE_DIR;
-                break;
-            default:
-                continue;
-        }
-#else
+        // even though GNU readdir(3) provides dent->d_type which would save us
+        // one fstatat() syscall here, it is not POSIX *and* does not resolve
+        // symlinks, so we have to use fstatat() anyway
         if (fstatat_type(cwdfd, dent->d_name, &enttype) == -1)
             continue;
         if (enttype == EXEC_TYPE_INVALID)
             continue;
-#endif
 
         int subdir;
         switch (enttype) {
