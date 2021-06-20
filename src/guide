@@ -14,7 +14,8 @@
     threaded program, though note:
     - writes to stdout, locked by F_WRLCK
     - writes to stderr on error, unsafely (not locked)
-    - manages forks without PID tracking, so DO NOT start any background
+    - managers forks with PID tracking and will report as error (on stderr)
+      any collected children that aren't its own, so DO NOT start any background
       forks that may exit before the runner call finishes
       - thus also do not start more than one instance of the runner in
         a single process
@@ -161,3 +162,6 @@
     timestamp is treated as part of the test name
     - though one might need custom tef_report() that doesn't auto-prepend
       TEF_PREFIX
+
+- mention in TEF.md that symbolic links should always be followed
+  - both symlinks to executable files *and* symlinks to subdirectories
