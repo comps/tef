@@ -1,6 +1,0 @@
-#!/bin/bash
-
-echo "running tef sub-runner"
-echo "running tef sub-runner 222" >&2
-
-exit 3
