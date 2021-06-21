@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "argv0: ---$0---"
+for arg in "$@"; do echo "got: ---$arg---"; done
