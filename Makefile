@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: all clean
 
 all: bin lib
@@ -12,6 +14,10 @@ bin:
 lib:
 	mkdir $@
 	install -m 644 src/common.inc $@/tef.bash
+
+# TODO: make this less hacky
+test:
+	$(MAKE) -C tests run
 
 clean:
 	rm -rf bin lib

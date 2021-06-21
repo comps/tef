@@ -1,11 +1,3 @@
-
-#runner/runner.a:
-#	$(MAKE) -C runner
-#report/report.a:
-#	$(MAKE) -C report
-#cli/ptef-runner: runner/runner.a report/report.a
-#	$(MAKE) -C cli
-
 .PHONY: all
 all: lib cli
 

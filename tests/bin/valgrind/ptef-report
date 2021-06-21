@@ -1,0 +1,8 @@
+#!/bin/bash
+# TODO: change this to valgrind --with-argv0 once it becomes widely available
+#       (post-May-2021)
+argv0=$(basename "$0")
+target="$TEST_VALGRIND_BINDIR/cli/ptef-report"
+exec valgrind \
+	--leak-check=full --log-fd=$TEST_VALGRIND_FD \
+	-- "$target" -a "$argv0" "$@"

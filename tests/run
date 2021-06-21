@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+argv0=$(basename "$0")
+
+failed=
+err() { echo >&2; echo "ERROR: $@" >&2; echo >&2; failed=1; }
+
+export PATH="$PWD/bin:$PATH"
+export LD_LIBRARY_PATH="$PWD/bin"
+
+export TEST_VALGRIND_BINDIR="$PWD/bin/valgrind"
+exec {TEST_VALGRIND_FD}>valgrind.log
+export TEST_VALGRIND_FD
+
+set -o pipefail
+for variant in valgrind cli; do  # TODO: bash python
+	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
+		ln -sf "$variant/$binary" "bin/$binary"
+	done
+	# TODO: write a custom unbuffer-like tool that can log stdout while
+	#       retaining colors
+	#       - copy parent terminal properties, set raw mode, etc.,
+	#         see https://man7.org/tlpi/code/online/dist/pty/unbuffer.c.html
+	#	- also see pts(4); open using posix_openpt(3), etc.
+	#         see https://gist.github.com/posborne/7225894
+	PTEF_PREFIX="/$variant" ptef-runner -a "$argv0" | tee stdout.log
+done
+
+# TODO: compare logged stdout to some template
+
+if grep -q 'ERROR SUMMARY: [1-9] errors' valgrind.log; then
+	err "found errors in valgrind.log"
+fi
+
+[ -z "$failed" ] && exit 0 || exit 1
