@@ -25,8 +25,9 @@ struct exec_entry {
 
 static int exec_entry_sort_cmp(const void *a, const void *b)
 {
-    const struct exec_entry *enta = a, *entb = b;
-    return strcoll((const char *)enta->name, (const char *)entb->name);
+    struct exec_entry **enta = (struct exec_entry **)a;
+    struct exec_entry **entb = (struct exec_entry **)b;
+    return strcoll((const char *)(*enta)->name, (const char *)(*entb)->name);
 }
 
 // like scandir, but customized for our use case, also without the need
