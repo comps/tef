@@ -1,2 +1,2 @@
-#!/bin/sh
-false
+#!/bin/bash
+exit 1

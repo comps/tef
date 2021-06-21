@@ -165,3 +165,11 @@
 
 - mention in PTEF.md that symbolic links should always be followed
   - both symlinks to executable files *and* symlinks to subdirectories
+
+- document zero-length arg in PTEF.md
+  - specifying /some/test/ will run 'test' with one empty "" argument
+    whereas /some/test will pass no arguments
+  - if 'test' is a runner, it should execute no tests, it should not
+    default to executing all tests
+  - useful for testing a parent execution chain without actually running
+    anything in the leaf directory
