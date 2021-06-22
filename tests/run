@@ -17,13 +17,7 @@ for variant in valgrind cli; do  # TODO: bash python
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
 		ln -sf "$variant/$binary" "bin/$binary"
 	done
-	# TODO: write a custom unbuffer-like tool that can log stdout while
-	#       retaining colors
-	#       - copy parent terminal properties, set raw mode, etc.,
-	#         see https://man7.org/tlpi/code/online/dist/pty/unbuffer.c.html
-	#	- also see pts(4); open using posix_openpt(3), etc.
-	#         see https://gist.github.com/posborne/7225894
-	PTEF_PREFIX="/$variant" ptef-runner -a "$argv0" | tee stdout.log
+	PTEF_PREFIX="/$variant" ttee -f stdout.log -- ptef-runner -a "$argv0"
 done
 
 # TODO: compare logged stdout to some template
