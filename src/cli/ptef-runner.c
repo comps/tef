@@ -50,7 +50,6 @@ int main(int argc, char **argv)
             case 'h':
                 print_help();
                 return 0;
-            case ':':
             case '?':
                 return 1;
         }
