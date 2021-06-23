@@ -12,15 +12,30 @@ export TEST_VALGRIND_BINDIR="$PWD/bin/valgrind"
 exec {TEST_VALGRIND_FD}>valgrind.log
 export TEST_VALGRIND_FD
 
+exec {TEST_STDOUT_LOG}>stdout.log
+
+# make the hierarchy traversal logic independent on ptef,
+# to make sure the traversal itself can be tested as a feature
+# in a respective test
+
 set -o pipefail
 for variant in valgrind cli; do  # TODO: bash python
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
 		ln -sf "$variant/$binary" "bin/$binary"
 	done
-	PTEF_PREFIX="/$variant" ttee -f stdout.log -- ptef-runner -a "$argv0"
+	for dir in *; do
+		if [ -x "$dir/$argv0" ]; then
+			pushd "$dir" >/dev/null
+			PTEF_PREFIX="/$variant" \
+				ttee -d "$TEST_STDOUT_LOG" -- "./$argv0"
+			popd >/dev/null
+		fi
+		# TODO: compare logged stdout to some template
+	done
 done
 
-# TODO: compare logged stdout to some template
+exec {TEST_VALGRIND_FD}>&-
+exec {TEST_STDOUT_LOG}>&-
 
 if grep -q 'ERROR SUMMARY: [1-9] errors' valgrind.log; then
 	err "found errors in valgrind.log"

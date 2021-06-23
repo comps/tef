@@ -26,3 +26,4 @@ bin_clean:
 clean: bin_clean
 	rm -f valgrind.log stdout.log
 	rm -f bin/ttee
+	# TODO: clean logs/ dirs in all hierarchies

@@ -60,7 +60,7 @@ static ssize_t write_safe(int fd, const void *buf, size_t count)
         if ((rc = write(fd, buf, count)) == -1) {
             if (errno == EINTR)
                 continue;
-            perror("write");
+            PERROR_FMT("write(%d,..)", fd);
             return -1;
         }
         written += rc;
@@ -75,14 +75,16 @@ static void print_help(void)
             "Runs prog in a new pseudoterminal, relaying its output to ttee's\n"
             "stdout and, optionally, duplicating it a log file.\n"
             "\n"
-            "  -f   log file name\n"
-            "  -a   append to log file, do not truncate\n");
+            "  -f path  log file name\n"
+            "  -a       append to log file, do not truncate\n"
+            "  -d nr    log file descriptor number, instead of file path\n");
 }
 
 int main(int argc, char **argv)
 {
     char *logfile = NULL;
     int logflags = O_WRONLY | O_CREAT | O_TRUNC;
+    int logfd = -1;
 
     // '+' and '-' are unfortunately GNU extensions to getopt(3)
     int posixly_correct_set = 0;
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
         posixly_correct_set = 1;
     }
     int c;
-    while ((c = getopt(argc, argv, "f:ah")) != -1) {
+    while ((c = getopt(argc, argv, "f:ad:h")) != -1) {
         switch (c) {
             case 'f':
                 logfile = optarg;
@@ -102,6 +104,9 @@ int main(int argc, char **argv)
             case 'a':
                 logflags |= O_APPEND;
                 logflags &= ~O_TRUNC;
+                break;
+            case 'd':
+                logfd = atoi(optarg);
                 break;
             case 'h':
                 print_help();
@@ -125,8 +130,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    int logfd = -1;
-    if (logfile) {
+    if (logfd == -1 && logfile) {
         if ((logfd = open(logfile, logflags, 0644)) == -1) {
             PERROR_FMT("open: %s", logfile);
             goto err;
@@ -161,7 +165,7 @@ int main(int argc, char **argv)
             ptm = -1;
             if (logfd != -1) {
                 if (close(logfd) == -1) {
-                    perror("close(logfd)");
+                    PERROR_FMT("close(%d)", logfd);
                     goto err;
                 }
                 logfd = -1;

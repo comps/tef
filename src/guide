@@ -173,3 +173,12 @@
     default to executing all tests
   - useful for testing a parent execution chain without actually running
     anything in the leaf directory
+
+- when rewriting PTEF.md, aim it at somebody actually implementing it
+  - section for runner, section for report, section for mklog
+  - specify only the minimum required functionality
+    - ie. don't mention colors for report at all, only "one or more whitespaces"
+      between status and test name
+  - then add the extra stuff in additional per-feature section(s)
+    - ie. automatic use of color if a terminal is detected, can be overriden
+      with PTEF_COLOR (unset or empty: auto, 0: never, 1: always)

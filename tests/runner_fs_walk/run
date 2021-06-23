@@ -1,1 +1,10 @@
-../bin/ptef-runner
+#!/bin/bash
+argv0=$(basename "$0")
+
+for dir in *; do
+	if [ -x "$dir/$argv0" ]; then
+		pushd "$dir" >/dev/null
+		PTEF_PREFIX+="/$dir" "./$argv0"
+		popd >/dev/null
+	fi
+done

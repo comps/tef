@@ -1,17 +1,1 @@
-#!/bin/bash
-set -e
-argv0=$(basename "$0")
-
-if [ "$#" -gt 0 ]; then
-	ptef-runner -a "$argv0" "$@"
-else
-	tests=( no_args
-		zero_length_arg/
-		one_arg/foobar
-		"one_arg_with_spaces/foo bar"
-		multiple_args/foo multiple_args/bar )
-	for t in "${tests[@]}"; do
-		tests+=(indirect/"$t")
-	done
-	ptef-runner -a "$argv0" "${tests[@]}"
-fi
+../runner_fs_walk/run
