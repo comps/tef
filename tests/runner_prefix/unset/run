@@ -1,0 +1,4 @@
+#!/bin/bash
+argv0=$(basename "$0")
+unset PTEF_PREFIX
+ptef-runner -a "$argv0"

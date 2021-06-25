@@ -20,13 +20,14 @@ exec {TEST_STDOUT_LOG}>stdout.log
 
 set -o pipefail
 for variant in valgrind cli; do  # TODO: bash python
+	echo; echo "::: $variant :::"; echo
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
 		ln -sf "$variant/$binary" "bin/$binary"
 	done
 	for dir in *; do
 		if [ -x "$dir/$argv0" ]; then
 			pushd "$dir" >/dev/null
-			PTEF_PREFIX="/$variant" \
+			TEST_SUBDIR="$dir" \
 				ttee -d "$TEST_STDOUT_LOG" -- "./$argv0"
 			popd >/dev/null
 		fi

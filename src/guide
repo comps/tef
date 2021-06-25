@@ -182,3 +182,4 @@
   - then add the extra stuff in additional per-feature section(s)
     - ie. automatic use of color if a terminal is detected, can be overriden
       with PTEF_COLOR (unset or empty: auto, 0: never, 1: always)
+    - ie. RUN status when an executable is run, can be disabled via PTEF_NORUN

@@ -3,8 +3,11 @@ argv0=$(basename "$0")
 
 for dir in *; do
 	if [ -x "$dir/$argv0" ]; then
+		echo "===== START: $TEST_SUBDIR/$dir ===== "
 		pushd "$dir" >/dev/null
-		PTEF_PREFIX+="/$dir" "./$argv0"
+		#PTEF_PREFIX="/$dir" "./$argv0"
+		"./$argv0"
+		echo "===== END: $TEST_SUBDIR/$dir (ret: $?) ===== "
 		popd >/dev/null
 	fi
 done

@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ -n "${PTEF_PREFIX+x}" ]; then
+	echo "got: -${PTEF_PREFIX}-"
+else
+	echo "PTEF_PREFIX is unset"
+fi
