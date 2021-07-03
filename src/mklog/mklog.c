@@ -164,7 +164,7 @@ static int open_ptef_logs(char *ptef_logs, char *ptef_prefix)
     // try opening it, create if necessary
     int logsfd = open_create_dir(ptef_logs);
     if (logsfd == -1)
-        goto err;
+        return -1;
 
     if (!ptef_prefix)
         ptef_prefix = "";
@@ -201,7 +201,8 @@ static int open_ptef_logs(char *ptef_logs, char *ptef_prefix)
     return logsfd;
 err:
     free(combined);
-    close(logsfd);
+    if (logsfd != -1)
+        close(logsfd);
     return -1;
 }
 
