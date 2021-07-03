@@ -14,13 +14,21 @@ void perror_fd(int fd, const char *func, char *fileline, char *msg);
 
 // dprintf-based, prefix msg with details
 #define ERROR_FMT(fmt, ...) \
-    dprintf(ERROR_FD, "ptef error in %s@" FILELINE fmt, \
-            __func__, __VA_ARGS__)
+    do { \
+        int orig_errno = errno; \
+        dprintf(ERROR_FD, "ptef error in %s@" FILELINE fmt, \
+                __func__, __VA_ARGS__); \
+        errno = orig_errno; \
+    } while (0)
 
 // dprintf-based, like ERROR_FMT, but appends strerror(errno)
 #define PERROR_FMT(fmt, ...) \
-    dprintf(ERROR_FD, "ptef error in %s@" FILELINE fmt ": %s\n", \
-            __func__, __VA_ARGS__, strerror(errno))
+    do { \
+        int orig_errno = errno; \
+        dprintf(ERROR_FD, "ptef error in %s@" FILELINE fmt ": %s\n", \
+                __func__, __VA_ARGS__, strerror(errno)); \
+        errno = orig_errno; \
+    } while (0)
 
 void *realloc_safe(void *ptr, size_t size);
 

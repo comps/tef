@@ -6,6 +6,7 @@
 // malloc-less verbose perror()
 void perror_fd(int fd, const char *func, char *fileline, char *msg)
 {
+    int orig_errno = errno;
     char prefix[] = "ptef error in ";
     char *err = strerror(errno);
     struct iovec iov[] = {
@@ -19,6 +20,7 @@ void perror_fd(int fd, const char *func, char *fileline, char *msg)
         { "\n", 1 },
     };
     writev(fd, (struct iovec *)iov, sizeof(iov)/sizeof(*iov));
+    errno = orig_errno;
 }
 
 // free the block if realloc fails

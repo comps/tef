@@ -142,21 +142,18 @@ static int open_create_dir(char *name)
     if (fd == -1) {
         if (errno != ENOENT) {
             PERROR_FMT("open %s", name);
-            goto err;
+            return -1;
         }
         if (mkdir(name, 0755) == -1) {
             PERROR_FMT("mkdir %s", name);
-            goto err;
+            return -1;
         }
         if ((fd = open(name, O_DIRECTORY)) == -1) {
             PERROR_FMT("open %s", name);
-            goto err;
+            return -1;
         }
     }
     return fd;
-err:
-    close(fd);
-    return -1;
 }
 
 // open/create PTEF_LOGS, create path inside it, open final leaf dir
@@ -221,12 +218,9 @@ int ptef_mklog_v0(char *testname)
         logsfd = open_create_dir("logs");
 
     if (logsfd == -1)
-        goto err;
+        return -1;
 
     int fd = open_log(logsfd, testname);
     close(logsfd);
     return fd;
-err:
-    close(logsfd);
-    return -1;
 }
