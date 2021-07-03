@@ -12,18 +12,20 @@ export TEST_VALGRIND_BINDIR="$PWD/bin/valgrind"
 exec {TEST_VALGRIND_FD}>valgrind.log
 export TEST_VALGRIND_FD
 
-exec {TEST_STDOUT_LOG}>stdout.log
-
 # make the hierarchy traversal logic independent on ptef,
 # to make sure the traversal itself can be tested as a feature
 # in a respective test
 
+variants="cli valgrind"  # TODO: bash python
+
 set -o pipefail
-for variant in cli valgrind; do  # TODO: bash python
-	ttee -d "$TEST_STDOUT_LOG" -- echo -e "\n::: $variant :::\n"
+for variant in $variants; do
+	echo -e "\n::: $variant :::\n"
+	stdout_log="stdout-${variant}.log"
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
 		ln -sf "$variant/$binary" "bin/$binary"
 	done
+	exec {TEST_STDOUT_LOG}>"$stdout_log"
 	for dir in *; do
 		if [ -x "$dir/$argv0" ]; then
 			pushd "$dir" >/dev/null
@@ -31,12 +33,28 @@ for variant in cli valgrind; do  # TODO: bash python
 				ttee -d "$TEST_STDOUT_LOG" -- "./$argv0"
 			popd >/dev/null
 		fi
-		# TODO: compare logged stdout to some template
 	done
+	exec {TEST_STDOUT_LOG}>&-
+	# replace PWD in the log, so we can diff it to a known state
+	awk -v from="$PWD" -v to="/ABS-PATH-WAS-HERE" \
+		'{ sub(from,to,$0); print $0 }' \
+		< "$stdout_log" > "$stdout_log.tmp"
+	mv -f "$stdout_log.tmp" "$stdout_log"
 done
 
 exec {TEST_VALGRIND_FD}>&-
-exec {TEST_STDOUT_LOG}>&-
+
+set +e
+
+# compare generated stdout to a known-good reference
+for variant in $variants; do
+	stdout_log="stdout-${variant}.log"
+	[ -f "reference/$stdout_log" ] || continue
+	if ! cmp -s "$stdout_log" "reference/$stdout_log"; then
+		err "$stdout_log differs from reference"
+		diff --color=auto -u "reference/$stdout_log" "$stdout_log"
+	fi
+done
 
 if grep -q 'ERROR SUMMARY: [1-9] errors' valgrind.log; then
 	err "found errors in valgrind.log"

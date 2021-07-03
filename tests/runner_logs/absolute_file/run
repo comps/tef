@@ -1,5 +1,5 @@
 #!/bin/bash
 argv0=$(basename "$0")
-rm -rf logsdir
-mkdir logsdir
-PTEF_LOGS=$PWD/logsdir ptef-runner -a "$argv0"
+rm -rf testlogs
+mkdir testlogs
+PTEF_LOGS=$PWD/testlogs ptef-runner -a "$argv0"

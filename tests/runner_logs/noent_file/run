@@ -1,4 +1,4 @@
 #!/bin/bash
 argv0=$(basename "$0")
-rm -rf logsdir
-PTEF_LOGS=$PWD/logsdir/sublogsdir ptef-runner -a "$argv0"
+rm -rf testlogs
+PTEF_LOGS=$PWD/testlogs/subtestlogs ptef-runner -a "$argv0"
