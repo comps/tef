@@ -42,8 +42,8 @@ static _Noreturn void execute_child(char **argv, char *dir)
         PERROR("close(" STRINGIFY(DEFAULT_ERROR_FD) ")");
         goto err;
     }
-#undef ERROR_FD
-#define ERROR_FD errout
+
+    current_error_fd = errout;
 
     char *testname;
 
@@ -125,8 +125,7 @@ static _Noreturn void execute_child(char **argv, char *dir)
         PERROR("close(errout)");
         goto err;
     }
-#undef ERROR_FD
-#define ERROR_FD DEFAULT_ERROR_FD
+    current_error_fd = DEFAULT_ERROR_FD;
 #endif
 
     // do execv()
@@ -142,8 +141,6 @@ err:
     close(logfd);
     close(errout);
     exit(1);
-#undef ERROR_FD
-#define ERROR_FD DEFAULT_ERROR_FD
 }
 
 static int start_job(pid_t pid, char *name, struct exec_state *state)

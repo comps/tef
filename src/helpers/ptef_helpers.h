@@ -5,18 +5,19 @@
 #define STRINGIFY(x) STRINGIFY_INDIRECT(x)
 #define FILELINE __FILE__ ":" STRINGIFY(__LINE__) ": "
 
+// shared across library/function calls
 #define DEFAULT_ERROR_FD 2
-#define ERROR_FD DEFAULT_ERROR_FD
+extern __thread int current_error_fd;
 
 // malloc-less, for low-resource fast error printing
-#define PERROR(msg) perror_fd(ERROR_FD, __func__, FILELINE, msg)
+#define PERROR(msg) perror_fd(current_error_fd, __func__, FILELINE, msg)
 void perror_fd(int fd, const char *func, char *fileline, char *msg);
 
 // dprintf-based, prefix msg with details
 #define ERROR_FMT(fmt, ...) \
     do { \
         int orig_errno = errno; \
-        dprintf(ERROR_FD, "ptef error in %s@" FILELINE fmt, \
+        dprintf(current_error_fd, "ptef error in %s@" FILELINE fmt, \
                 __func__, __VA_ARGS__); \
         errno = orig_errno; \
     } while (0)
@@ -25,7 +26,7 @@ void perror_fd(int fd, const char *func, char *fileline, char *msg);
 #define PERROR_FMT(fmt, ...) \
     do { \
         int orig_errno = errno; \
-        dprintf(ERROR_FD, "ptef error in %s@" FILELINE fmt ": %s\n", \
+        dprintf(current_error_fd, "ptef error in %s@" FILELINE fmt ": %s\n", \
                 __func__, __VA_ARGS__, strerror(errno)); \
         errno = orig_errno; \
     } while (0)

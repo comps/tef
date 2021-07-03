@@ -3,6 +3,10 @@
 #include <errno.h>
 #include <sys/uio.h>
 
+#include "ptef_helpers.h"
+
+__thread int current_error_fd = DEFAULT_ERROR_FD;
+
 // malloc-less verbose perror()
 void perror_fd(int fd, const char *func, char *fileline, char *msg)
 {
