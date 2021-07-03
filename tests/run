@@ -25,16 +25,13 @@ for variant in $variants; do
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
 		ln -sf "$variant/$binary" "bin/$binary"
 	done
-	exec {TEST_STDOUT_LOG}>"$stdout_log"
 	for dir in *; do
 		if [ -x "$dir/$argv0" ]; then
 			pushd "$dir" >/dev/null
-			TEST_SUBDIR="$dir" \
-				ttee -d "$TEST_STDOUT_LOG" -- "./$argv0"
+			TEST_SUBDIR="$dir" "./$argv0"
 			popd >/dev/null
 		fi
-	done
-	exec {TEST_STDOUT_LOG}>&-
+	done | tee "$stdout_log" 
 	# replace PWD in the log, so we can diff it to a known state
 	awk -v from="$PWD" -v to="/ABS-PATH-WAS-HERE" \
 		'{ sub(from,to,$0); print $0 }' \
@@ -47,14 +44,15 @@ exec {TEST_VALGRIND_FD}>&-
 set +e
 
 # compare generated stdout to a known-good reference
-for variant in $variants; do
-	stdout_log="stdout-${variant}.log"
-	[ -f "reference/$stdout_log" ] || continue
-	if ! cmp -s "$stdout_log" "reference/$stdout_log"; then
-		err "$stdout_log differs from reference"
-		diff --color=auto -u "reference/$stdout_log" "$stdout_log"
-	fi
-done
+if [ -f stdout-reference.log ]; then
+	for variant in $variants; do
+		stdout_log="stdout-${variant}.log"
+		if ! cmp -s "$stdout_log" stdout-reference.log; then
+			err "$stdout_log differs from reference"
+			diff --color=auto -u stdout-reference.log "$stdout_log"
+		fi
+	done
+fi
 
 if grep -q 'ERROR SUMMARY: [1-9] errors' valgrind.log; then
 	err "found errors in valgrind.log"
