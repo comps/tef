@@ -26,4 +26,6 @@ bin_clean:
 clean: bin_clean
 	rm -f valgrind.log stdout.log
 	rm -f bin/ttee
+	# TODO: re-do this as recursive make? .. or just add logsdir/ for runner_logs,
+	#       or maybe rename logsdir to testlogs and remove all logs + testlogs here
 	find . -depth -type d -name logs -exec rm -rf {} \;

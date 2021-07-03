@@ -19,8 +19,8 @@ exec {TEST_STDOUT_LOG}>stdout.log
 # in a respective test
 
 set -o pipefail
-for variant in valgrind cli; do  # TODO: bash python
-	echo; echo "::: $variant :::"; echo
+for variant in cli valgrind; do  # TODO: bash python
+	ttee -d "$TEST_STDOUT_LOG" -- echo -e "\n::: $variant :::\n"
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
 		ln -sf "$variant/$binary" "bin/$binary"
 	done

@@ -1,0 +1,5 @@
+#!/bin/bash
+argv0=$(basename "$0")
+rm -rf logsdir
+mkdir logsdir
+PTEF_PREFIX=/prefix PTEF_LOGS=$PWD/logsdir ptef-runner -a "$argv0"

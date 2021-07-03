@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ -n "${PTEF_LOGS+x}" ]; then
+	echo "got: -${PTEF_LOGS}-"
+else
+	echo "PTEF_LOGS is unset"
+fi
