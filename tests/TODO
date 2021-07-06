@@ -1,0 +1,46 @@
+
+- individual options for runner (-a, etc.)
+
+- parallel execution test
+  - 20 jobs, with some locking/semaphore and 0.1 sleep
+
+- executable stderr is logged, stdout isn't
+- runner stderr is logged
+- runner reports to stdout
+  - black&white to pipe
+  - color on terminal
+
+- PTEF_PREFIX
+  - subdir test
+
+- ptef_report
+  - unset prefix
+  - empty prefix
+  - normal prefix
+
+  # these are out of spec, but we should check them anyway
+  - status with whitespaces
+  - lowercase status
+  - testname with newline
+
+  - status into non-terminal
+  - status into terminal (ttee)
+
+- ptef_mklog
+  - unset prefix
+  - empty prefix
+  - normal prefix
+
+  - empty testname
+
+  - ptef_logs undefined
+    - check for 'logs'
+  - ptef_logs absolute
+    - check for log dir + file
+  - ptef_logs relative
+    - check for log dir + file
+
+  - log rotation .log to .log.1
+  - log rotation .log.1 to .log.2
+  - log rotation .log.9 gets deleted
+
