@@ -1,5 +1,3 @@
-//#define _POSIX_C_SOURCE 200809L
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,36 +12,52 @@
 #include <fcntl.h>
 
 #include <ptef.h>
+#include <ptef_helpers.h>
 
 static void print_help(void)
 {
     fprintf(stderr,
-            "bla bla\n");
+            "usage: ptef-mklog TEST\n"
+            "\n"
+            "Creates and opens a log storage for a test named TEST, relaying\n"
+            "stdin to the log storage until EOF is encountered.\n");
+}
+
+#define BUF_SIZE 1024
+static int relay_input(int to)
+{
+    char *buf;
+    if ((buf = malloc(BUF_SIZE)) == NULL) {
+        PERROR("malloc");
+        return -1;
+    }
+    ssize_t bytes;
+    while ((bytes = read(STDIN_FILENO, buf, BUF_SIZE)) > 0) {
+        if (write_safe(to, buf, bytes) == -1) {
+            free(buf);
+            return -1;
+        }
+    }
+    free(buf);
+    return 0;
 }
 
 int main(int argc, char **argv)
 {
-#if 0
-    int c;
-    while ((c = getopt(argc, argv, "h")) != -1) {
-        switch (c) {
-            case 'h':
-                print_help();
-                return 0;
-            case ':':
-            case '?':
-                return 1;
-        }
-
-        /* one of the strtoullx calls failed */
-        //if (errno)
-        //    exit(EXIT_FAILURE);
-    }
-#endif
     if (argc < 2) {
         print_help();
         return 1;
     }
 
-    return ptef_mklog(argv[1]) == -1 ? 1 : 0;
+    int fd;
+    if ((fd = ptef_mklog(argv[1])) == -1)
+        return 1;
+
+    if (relay_input(fd) == -1) {
+        close(fd);
+        return 1;
+    }
+
+    close(fd);
+    return 0;
 }

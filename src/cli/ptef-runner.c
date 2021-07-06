@@ -19,7 +19,15 @@
 static void print_help(void)
 {
     fprintf(stderr,
-            "bla bla\n");
+            "usage: ptef-runner [OPTIONS]\n"
+            "\n"
+            "  -a BASE  argv0 basename, overriding autodetection\n"
+            "  -j NR    number of parallel jobs (tests)\n"
+            "  -i EXE   ignore exe filename, can specify multiple times\n"
+            "  -n       don't merge arguments of subrunners (always pass 1 arg)\n"
+            "\n"
+            "Executes the PTEF runner logic from CWD, executing executables\n"
+            "and traversing subdirectories.\n");
 }
 
 int main(int argc, char **argv)

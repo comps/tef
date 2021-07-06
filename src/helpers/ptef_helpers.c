@@ -2,6 +2,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/uio.h>
+#include <unistd.h>
 
 #include "ptef_helpers.h"
 
@@ -34,6 +35,21 @@ void *realloc_safe(void *ptr, size_t size)
     if (new == NULL)
         free(ptr);
     return new;
+}
+
+// re-try until the entire buffer is written
+ssize_t write_safe(int fd, const void *buf, size_t count)
+{
+    ssize_t rc, written = 0;
+    while ((size_t)written < count) {
+        if ((rc = write(fd, buf, count)) == -1) {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        written += rc;
+    }
+    return written;
 }
 
 // like stpcpy, but without the repeated internal strlen()

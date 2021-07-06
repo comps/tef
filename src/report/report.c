@@ -52,29 +52,14 @@ static bool is_terminal(int fd)
     return !tcgetattr(fd, &tos);
 }
 
-// TODO: maybe rewrite this to writev(2), though dealing with its partial writes
-//       (less than full bytes returned) across buffers would be really ugly
-static ssize_t write_safe(int fd, const void *buf, size_t count)
-{
-    ssize_t rc, written = 0;
-    while ((size_t)written < count) {
-        if ((rc = write(fd, buf, count)) == -1) {
-            if (errno == EINTR)
-                continue;
-            PERROR_FMT("write(%d, ..)", fd);
-            return -1;
-        }
-        written += rc;
-    }
-    return written;
-}
 static ssize_t write_safe_locked(int fd, const void *buf, size_t count)
 {
     int write_errno;
     ssize_t rc;
     if (lock(fd) == -1)
         return -1;
-    rc = write_safe(fd, buf, count);
+    if ((rc = write_safe(fd, buf, count)) == -1)
+        PERROR_FMT("write_safe(%d, ..)", fd);
     write_errno = errno;
     unlock(fd);
     errno = write_errno;

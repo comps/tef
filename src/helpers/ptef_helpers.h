@@ -33,6 +33,8 @@ void perror_fd(int fd, const char *func, char *fileline, char *msg);
 
 void *realloc_safe(void *ptr, size_t size);
 
+ssize_t write_safe(int fd, const void *buf, size_t count);
+
 void *memcpy_append(void *dest, void *src, size_t n);
 
 #endif

@@ -34,18 +34,9 @@
 - bash builtin - try getenv on BASH_ARGV0 to avoid '-a $(basename $0)'
   - bash 5.0 .. :/
 
-- write reasonable perror messages, prefix with 'ptef: ', etc.
-
 - optimize with -O2 and add LTO
 
 - clean up includes
-
-- check fox max CLI length, split arguments across runner calls,
-  OR document that this is missing
-  - add this to PTEF.md
-  - ACTUALLY this should never happen; we only pass args if parent (user)
-    gave us args and, in that case, all our args already must fit within
-    the limit, even if we don't merge
 
 - adjust PTEF.md to say that invalid (insane) arg must stop arg merging and the
   runner with exit with non-0 without running anything beyond the invalid arg
@@ -69,7 +60,6 @@
     for machine parsing (due to possibly noisy execs)
   - leave PTEF_RESULTS_FD as-is, color-less, for reliable reporting
   - when executing, redirect only stderr to log, leave stdout on console
-  - TODO fix 'LOOP_FD' hacks in ospp-kickstart-test-suite
 
 - add to PTEF.md a section mentioning RFC2119 (must, should, etc. language)
   - Background & Rationale
@@ -86,6 +76,16 @@
       - ie. runners that always skip 'setup' 'run' 'cleanup' minus their own
         argv0
 
+- when rewriting PTEF.md, aim it at somebody actually implementing it
+  - section for runner, section for report, section for mklog
+  - specify only the minimum required functionality
+    - ie. don't mention colors for report at all, only "one or more whitespaces"
+      between status and test name
+  - then add the extra stuff in additional per-feature section(s)
+    - ie. automatic use of color if a terminal is detected, can be overriden
+      with PTEF_COLOR (unset or empty: auto, 0: never, 1: always)
+    - ie. RUN status when an executable is run, can be disabled via PTEF_NORUN
+
 - note for parallel execution - what about argument merging?
   - should 'a/b a/c' run a twice wi 'b' and 'c' ?
   - should merging be always disabled for parallel exec?
@@ -95,17 +95,6 @@
   - can we combine them?
     - if merging is disabled, run multiple jobs even for the same exec
     - if merging is enabled, run one job with multiple args for the one exec
-
-- redo bools as integers
-  - probably better for ABI
-  - also return -1 on error
-
-- rewrite realloc_safe to take void **ptr to be modified in-place
-  - return either the new ptr on success, or NULL on fail
-  - caller can then choose to free the passed ptr on fail
-    or continue on without new element added
-
-- include guards (for multiple-inclusion) in ptef.h
 
 - mention in PTEF.md that PTEF_LOGS directory:
   - MUST be created if it doesn't exist
@@ -151,18 +140,6 @@
 - add example showing how to post-process results
   - see ospp-kickstart-test-suite
 
-- add example on how to hack/extend reported results
-  - ie. add time elapsed for each result
-  - since the test name is unparsed string, a suite could easily do custom
-    format within the test name field, ie. instead of
-      PASS \t /some/test/name \n
-    do
-      PASS \t 1.567 \t /some/test/name \n
-    which is a perfectly valid result as far as PTEF is concerned, the
-    timestamp is treated as part of the test name
-    - though one might need custom ptef_report() that doesn't auto-prepend
-      PTEF_PREFIX
-
 - mention in PTEF.md that symbolic links should always be followed
   - both symlinks to executable files *and* symlinks to subdirectories
 
@@ -174,12 +151,3 @@
   - useful for testing a parent execution chain without actually running
     anything in the leaf directory
 
-- when rewriting PTEF.md, aim it at somebody actually implementing it
-  - section for runner, section for report, section for mklog
-  - specify only the minimum required functionality
-    - ie. don't mention colors for report at all, only "one or more whitespaces"
-      between status and test name
-  - then add the extra stuff in additional per-feature section(s)
-    - ie. automatic use of color if a terminal is detected, can be overriden
-      with PTEF_COLOR (unset or empty: auto, 0: never, 1: always)
-    - ie. RUN status when an executable is run, can be disabled via PTEF_NORUN

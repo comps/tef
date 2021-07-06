@@ -1,5 +1,3 @@
-//#define _POSIX_C_SOURCE 200809L
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,28 +16,15 @@
 static void print_help(void)
 {
     fprintf(stderr,
-            "bla bla\n");
+            "usage: ptef-report STATUS TEST\n"
+            "\n"
+            "Reports STATUS for a test named TEST, prepending PTEF_PREFIX\n"
+            "to the TEST name, copying the report to PTEF_RESULTS_FD if defined.\n"
+            "Outputs color if stdout is connected to a terminal.\n");
 }
 
 int main(int argc, char **argv)
 {
-#if 0
-    int c;
-    while ((c = getopt(argc, argv, "h")) != -1) {
-        switch (c) {
-            case 'h':
-                print_help();
-                return 0;
-            case ':':
-            case '?':
-                return 1;
-        }
-
-        /* one of the strtoullx calls failed */
-        //if (errno)
-        //    exit(EXIT_FAILURE);
-    }
-#endif
     if (argc < 3) {
         print_help();
         return 1;
