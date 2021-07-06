@@ -34,8 +34,6 @@
 - bash builtin - try getenv on BASH_ARGV0 to avoid '-a $(basename $0)'
   - bash 5.0 .. :/
 
-- optimize with -O2 and add LTO
-
 - clean up includes
 
 - adjust PTEF.md to say that invalid (insane) arg must stop arg merging and the
@@ -151,3 +149,9 @@
   - useful for testing a parent execution chain without actually running
     anything in the leaf directory
 
+- change exe ignores from runner arg to PTEF_IGNORE_EXE, slash-separated
+  - and document it in PTEF.md
+    - mention that this list extends the argv0 basename ignore to additional
+      executable names
+  - this makes more sense if the use case is to ignore 'build' and 'cleanup'
+    executables while doing 'run'

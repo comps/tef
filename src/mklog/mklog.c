@@ -208,6 +208,7 @@ err:
 
 // create and open a log file for testname, return its fd
 __asm__(".symver ptef_mklog_v0, ptef_mklog@@VERS_0");
+__attribute__((used))
 int ptef_mklog_v0(char *testname)
 {
     int logsfd;

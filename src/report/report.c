@@ -121,6 +121,7 @@ static char *status_rewrites[][2] = {
 #define TERMINAL_FD 1
 
 __asm__(".symver ptef_report_v0, ptef_report@@VERS_0");
+__attribute__((used))
 int ptef_report_v0(char *status, char *name)
 {
     char *status_pretty = status;

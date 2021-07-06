@@ -1,7 +1,7 @@
 .PHONY: all
 all: ptef-runner ptef-report ptef-mklog
 
-CFLAGS ?= -O2 -Wall -g
+CFLAGS ?= -O2 -flto -Wall -g
 CFLAGS += -I../include -I../helpers
 
 ptef-runner.o: ptef-runner.c

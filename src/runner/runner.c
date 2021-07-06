@@ -4,6 +4,7 @@
 
 // true if everything PASSed, false on error or FAIL
 __asm__(".symver ptef_runner_v0, ptef_runner@@VERS_0");
+__attribute__((used))
 int ptef_runner_v0(int argc, char **argv, struct ptef_runner_opts *opts)
 {
     // sanitize opts
