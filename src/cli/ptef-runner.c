@@ -19,7 +19,7 @@
 static void print_help(void)
 {
     fprintf(stderr,
-            "usage: ptef-runner [OPTIONS]\n"
+            "usage: ptef-runner [OPTIONS] [TEST]...\n"
             "\n"
             "  -a BASE  argv0 basename, overriding autodetection\n"
             "  -j NR    number of parallel jobs (tests)\n"
@@ -27,7 +27,9 @@ static void print_help(void)
             "  -n       don't merge arguments of subrunners (always pass 1 arg)\n"
             "\n"
             "Executes the PTEF runner logic from CWD, executing executables\n"
-            "and traversing subdirectories.\n");
+            "and traversing subdirectories.\n"
+            "If TEST is specified, runs only that test, without scanning for\n"
+            "executables.\n");
 }
 
 int main(int argc, char **argv)
@@ -44,8 +46,13 @@ int main(int argc, char **argv)
                 break;
             case 'j':
                 opts.jobs = atoi(optarg);
+                if (opts.jobs < 1) {
+                    ERROR_FMT("invalid job cnt: %s\n", optarg);
+                    return 1;
+                }
                 break;
             case 'i':
+                // TODO: remove, rework into variable instead
                 ignored_cnt++;
                 opts.ignore_files =
                     realloc_safe(opts.ignore_files, sizeof(char**)*ignored_cnt);
@@ -53,7 +60,7 @@ int main(int argc, char **argv)
                 opts.ignore_files[ignored_cnt-1] = NULL;
                 break;
             case 'n':
-                opts.nomerge_args = true;
+                opts.nomerge_args = 1;
                 break;
             case 'h':
                 print_help();
