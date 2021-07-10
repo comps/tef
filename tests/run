@@ -8,7 +8,7 @@ err() { echo >&2; echo "ERROR: $@" >&2; echo >&2; failed=1; }
 export PATH="$PWD/bin:$PATH"
 export LD_LIBRARY_PATH="$PWD/bin"
 
-export TEST_VALGRIND_BINDIR="$PWD/bin/valgrind"
+export TEST_BINDIR="$PWD/bin"
 exec {TEST_VALGRIND_FD}>valgrind.log
 export TEST_VALGRIND_FD
 
@@ -16,7 +16,7 @@ export TEST_VALGRIND_FD
 # to make sure the traversal itself can be tested as a feature
 # in a respective test
 
-variants="cli valgrind"  # TODO: bash python
+variants="cli valgrind bash"  # TODO: python
 
 set -o pipefail
 for variant in $variants; do

@@ -10,7 +10,8 @@ build: bin/ttee bin_clean
 	cp -v ../src/cli/ptef-{runner,report,mklog} ../src/lib/*.so bin/valgrind/cli/. && \
 	$(MAKE) -C ../src clean && \
 	$(MAKE) -C ../src && \
-	cp -v ../src/cli/ptef-{runner,report,mklog} ../src/lib/*.so bin/cli/.
+	cp -v ../src/cli/ptef-{runner,report,mklog} ../src/lib/*.so bin/cli/. && \
+	cp -v ../src/bash/bash-builtins.{so,sh} bin/bash/.
 
 .PHONY: run
 run:
@@ -21,6 +22,7 @@ bin_clean:
 	rm -f bin/valgrind/cli/{ptef-{runner,report,mklog},libptef.so}
 	rm -f bin/cli/{ptef-{runner,report,mklog},libptef.so}
 	rm -f bin/{ptef-{runner,report,mklog},libptef.so}
+	rm -f bin/bash/bash-builtins.{so,sh}
 
 .PHONY: clean
 clean: bin_clean

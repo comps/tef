@@ -1,7 +1,7 @@
 .PHONY: all
-all: lib cli
+all: lib cli bash
 
-.PHONY: helpers runner report mklog lib cli
+.PHONY: helpers runner report mklog lib cli bash
 helpers:
 	@$(MAKE) -C helpers
 runner:
@@ -14,6 +14,8 @@ lib: helpers runner report mklog
 	@$(MAKE) -C lib
 cli: lib
 	@$(MAKE) -C cli
+bash: lib
+	@$(MAKE) -C bash
 
 .PHONY: clean
 clean:
@@ -23,3 +25,4 @@ clean:
 	@$(MAKE) -C mklog clean
 	@$(MAKE) -C lib clean
 	@$(MAKE) -C cli clean
+	@$(MAKE) -C bash clean
