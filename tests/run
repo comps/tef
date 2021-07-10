@@ -16,10 +16,11 @@ export TEST_VALGRIND_FD
 # to make sure the traversal itself can be tested as a feature
 # in a respective test
 
-variants="cli valgrind bash"  # TODO: python
+variants=("$@")
+[ "${#variants[@]}" -lt 1 ] && variants=(cli valgrind bash)  # TODO: python
 
 set -o pipefail
-for variant in $variants; do
+for variant in "${variants[@]}"; do
 	echo -e "\n::: $variant :::\n"
 	stdout_log="stdout-${variant}.log"
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
@@ -45,7 +46,7 @@ set +e
 
 # compare generated stdout to a known-good reference
 if [ -f stdout-reference.log ]; then
-	for variant in $variants; do
+	for variant in "${variants[@]}"; do
 		stdout_log="stdout-${variant}.log"
 		if ! cmp -s "$stdout_log" stdout-reference.log; then
 			err "$stdout_log differs from reference"
