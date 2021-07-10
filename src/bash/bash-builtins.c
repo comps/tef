@@ -1,7 +1,6 @@
 #include <unistd.h>
 #include <bash/builtins.h>
-//#include <bash/builtins/common.h>
-#include <bash/builtins/bashgetopt.h>
+//#include <bash/builtins/bashgetopt.h>
 #include <bash/variables.h>
 #include <bash/arrayfunc.h>
 #include <bash/externs.h>
@@ -11,12 +10,25 @@
 #include <ptef.h>
 
 extern void builtin_error();
-extern void builtin_usage();
-extern char **make_builtin_argv();
 
 //
 // runner
 //
+
+// bash goes into great lengts to override the glibc getenv/setenv functions
+// for use with its own variables rather than the true environment ones
+//
+// this is useful for ie. report/mklog, because you can prefix them with
+// variables on the CLI as if they were real commands, but breaks the runner
+// when it tries to setenv() new PTEF_PREFIX and PTEF_LOGS in a fork()ed child
+// just before execv(), because the setenv() doesn't actually set real env vars
+// and thus the child execv()s with the old env var values
+//
+// therefore don't do runner as a bash builtin
+
+#if 0
+extern void builtin_usage();
+extern char **make_builtin_argv();
 
 // the libgen.h version may modify path
 static char *basename(char *path)
@@ -77,6 +89,7 @@ static int runner_main(WORD_LIST *list)
 
     return 0;
 }
+#endif
 
 //
 // report
@@ -163,7 +176,7 @@ static int mklog_main(WORD_LIST *test)
 //
 // builtin boilerplate
 //
-
+#if 0
 static char *runner_help[] = {
     "  -a BASE  argv0 basename, overriding autodetection",
     "  -j NR    number of parallel jobs (tests)",
@@ -176,6 +189,7 @@ static char *runner_help[] = {
     "executables.",
     NULL
 };
+#endif
 static char *report_help[] = {
     "Reports STATUS for a test named TEST, prepending PTEF_PREFIX",
     "to the TEST name, copying the report to PTEF_RESULTS_FD if defined.",
@@ -189,6 +203,7 @@ static char *mklog_help[] = {
 };
 // must be named <name>_struct
 // name, function, flags, log_doc, short_doc, handle (unused)
+#if 0
 struct builtin ptef_runner_struct = {
     "ptef_runner",
     runner_main,
@@ -197,6 +212,7 @@ struct builtin ptef_runner_struct = {
     "ptef_runner [OPTIONS] [TEST]...",
     NULL
 };
+#endif
 struct builtin ptef_report_struct = {
     "ptef_report",
     report_main,
