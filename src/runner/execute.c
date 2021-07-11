@@ -48,7 +48,7 @@ static _Noreturn void execute_child(char **argv, char *dir)
     char *testname;
 
     if (dir) {
-        char *ptef_prefix = getenv("PTEF_PREFIX");
+        char *ptef_prefix = getenv_defined("PTEF_PREFIX");
         if (!ptef_prefix)
             ptef_prefix = "";
 
@@ -73,8 +73,8 @@ static _Noreturn void execute_child(char **argv, char *dir)
         }
 
         // if PTEF_LOGS has relative path, prepend '../'
-        char *ptef_logs = getenv("PTEF_LOGS");
-        if (ptef_logs && *ptef_logs != '\0' && *ptef_logs != '/') {
+        char *ptef_logs = getenv_defined("PTEF_LOGS");
+        if (ptef_logs && *ptef_logs != '/') {
             free(tmp);
             size_t ptef_logs_len = strlen(ptef_logs);
             // +4 for '../' and '\0'

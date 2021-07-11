@@ -35,6 +35,8 @@ void *realloc_safe(void *ptr, size_t size);
 
 ssize_t write_safe(int fd, const void *buf, size_t count);
 
+char *getenv_defined(const char *name);
+
 void *memcpy_append(void *dest, void *src, size_t n);
 
 #endif

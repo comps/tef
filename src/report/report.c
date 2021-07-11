@@ -75,7 +75,7 @@ static char *format_line(char *status, char *name, size_t *len)
     // status, ' ', name, '\n', '\0'
     size_t line_len = status_len + name_len + 3;
 
-    char *ptef_prefix = getenv("PTEF_PREFIX");
+    char *ptef_prefix = getenv_defined("PTEF_PREFIX");
     size_t ptef_prefix_len = 0;
     if (ptef_prefix) {
         ptef_prefix_len = strlen(ptef_prefix);
@@ -148,7 +148,7 @@ int ptef_report_v0(char *status, char *name)
         goto err;
 
     // duplicate write to PTEF_RESULTS_FD
-    char *ptef_results_fd = getenv("PTEF_RESULTS_FD");
+    char *ptef_results_fd = getenv_defined("PTEF_RESULTS_FD");
     if (ptef_results_fd) {
         int fd = atoi(ptef_results_fd);
         if (fd > 0) {

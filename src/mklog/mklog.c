@@ -213,9 +213,9 @@ int ptef_mklog_v0(char *testname)
 {
     int logsfd;
 
-    char *ptef_logs = getenv("PTEF_LOGS");
-    if (ptef_logs && *ptef_logs != '\0')
-        logsfd = open_ptef_logs(ptef_logs, getenv("PTEF_PREFIX"));
+    char *ptef_logs = getenv_defined("PTEF_LOGS");
+    if (ptef_logs)
+        logsfd = open_ptef_logs(ptef_logs, getenv_defined("PTEF_PREFIX"));
     else
         logsfd = open_create_dir("logs");
 

@@ -52,6 +52,13 @@ ssize_t write_safe(int fd, const void *buf, size_t count)
     return written;
 }
 
+// useful for many PTEF_* variables which say 'defined and non-empty'
+char *getenv_defined(const char *name)
+{
+    char *ret = getenv(name);
+    return *ret == '\0' ? NULL : ret;
+}
+
 // like stpcpy, but without the repeated internal strlen()
 void *memcpy_append(void *dest, void *src, size_t n)
 {
