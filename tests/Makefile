@@ -29,3 +29,4 @@ clean: bin_clean
 	rm -f valgrind.log stdout-{cli,valgrind,bash,python}.log
 	rm -f bin/ttee
 	find . -depth -type d \( -name logs -o -name testlogs \) -exec rm -rf {} \;
+	find . -depth -type f \( -name core.\* -o -name vgcore.\* \) -exec rm -f {} \;

@@ -5,31 +5,33 @@
 #define STRINGIFY(x) STRINGIFY_INDIRECT(x)
 #define FILELINE __FILE__ ":" STRINGIFY(__LINE__) ": "
 
-// shared across library/function calls
 #define DEFAULT_ERROR_FD 2
-extern __thread int current_error_fd;
+#define DEFAULT_ERROR_FD_STR STRINGIFY(DEFAULT_ERROR_FD)
 
 // malloc-less, for low-resource fast error printing
-#define PERROR(msg) perror_fd(current_error_fd, __func__, FILELINE, msg)
 void perror_fd(int fd, const char *func, char *fileline, char *msg);
+#define PERROR_FD(fd, msg) perror_fd(fd, __func__, FILELINE, msg)
+#define PERROR(msg) PERROR_FD(DEFAULT_ERROR_FD, msg)
 
 // dprintf-based, prefix msg with details
-#define ERROR_FMT(fmt, ...) \
+#define ERROR_FMT_FD(fd, fmt, ...) \
     do { \
         int orig_errno = errno; \
-        dprintf(current_error_fd, "ptef error in %s@" FILELINE fmt, \
+        dprintf(fd, "ptef error in %s@" FILELINE fmt, \
                 __func__, __VA_ARGS__); \
         errno = orig_errno; \
     } while (0)
+#define ERROR_FMT(fmt, ...) ERROR_FMT_FD(DEFAULT_ERROR_FD, fmt, __VA_ARGS__)
 
 // dprintf-based, like ERROR_FMT, but appends strerror(errno)
-#define PERROR_FMT(fmt, ...) \
+#define PERROR_FMT_FD(fd, fmt, ...) \
     do { \
         int orig_errno = errno; \
-        dprintf(current_error_fd, "ptef error in %s@" FILELINE fmt ": %s\n", \
+        dprintf(fd, "ptef error in %s@" FILELINE fmt ": %s\n", \
                 __func__, __VA_ARGS__, strerror(errno)); \
         errno = orig_errno; \
     } while (0)
+#define PERROR_FMT(fmt, ...) PERROR_FMT_FD(DEFAULT_ERROR_FD, fmt, __VA_ARGS__)
 
 void *realloc_safe(void *ptr, size_t size);
 

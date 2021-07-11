@@ -6,8 +6,6 @@
 
 #include "ptef_helpers.h"
 
-__thread int current_error_fd = DEFAULT_ERROR_FD;
-
 // malloc-less verbose perror()
 void perror_fd(int fd, const char *func, char *fileline, char *msg)
 {
@@ -56,7 +54,7 @@ ssize_t write_safe(int fd, const void *buf, size_t count)
 char *getenv_defined(const char *name)
 {
     char *ret = getenv(name);
-    return *ret == '\0' ? NULL : ret;
+    return (ret && *ret != '\0') ? ret : NULL;
 }
 
 // like stpcpy, but without the repeated internal strlen()

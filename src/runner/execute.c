@@ -31,19 +31,7 @@ static _Noreturn void execute_child(char **argv, char *dir)
 {
     char *tmp = NULL;
     int logfd = -1;
-
-    // save stderr so we can still report errors to original output
-    int errout;
-    if ((errout = dup(DEFAULT_ERROR_FD)) == -1) {
-        PERROR("dup(" STRINGIFY(DEFAULT_ERROR_FD) ")");
-        goto err;
-    }
-    if (close(DEFAULT_ERROR_FD) == -1) {
-        PERROR("close(" STRINGIFY(DEFAULT_ERROR_FD) ")");
-        goto err;
-    }
-
-    current_error_fd = errout;
+    int errout = -1;
 
     char *testname;
 
@@ -51,8 +39,6 @@ static _Noreturn void execute_child(char **argv, char *dir)
         char *ptef_prefix = getenv_defined("PTEF_PREFIX");
         if (!ptef_prefix)
             ptef_prefix = "";
-
-        char *pos;
 
         // add the current testname (subdir name) to PTEF_PREFIX
         testname = dir;
@@ -63,6 +49,8 @@ static _Noreturn void execute_child(char **argv, char *dir)
             PERROR("malloc");
             goto err;
         }
+
+        char *pos;
         pos = memcpy_append(tmp, ptef_prefix, ptef_prefix_len);
         *pos++ = '/';
         pos = memcpy_append(pos, testname, testname_len);
@@ -99,13 +87,8 @@ static _Noreturn void execute_child(char **argv, char *dir)
         PERROR_FMT("ptef_mklog(%s)", testname);
         goto err;
     }
-    if (dup2(logfd, DEFAULT_ERROR_FD) == -1) {
-        PERROR_FMT("dup2(%d," STRINGIFY(DEFAULT_ERROR_FD) ")", logfd);
-        goto err;
-    }
-    close(logfd);
-    logfd = -1;
 
+    // cd into a subrunner directory
     if (dir) {
         if (chdir(dir) == -1) {
             PERROR_FMT("chdir(%s)", dir);
@@ -113,24 +96,49 @@ static _Noreturn void execute_child(char **argv, char *dir)
         }
     }
 
+    // replace stderr with logfd from ptef_mklog
+    //
+    // if we have O_CLOEXEC, dup the original stderr to a higher-up fd,
+    // so we can still report errors from execv() to the original output
+    //
+    // if we don't have O_CLOEXEC, these errors will go to the logfile
 #ifdef O_CLOEXEC
-    // close our error-reporting channel on execve()
+    if ((errout = dup(DEFAULT_ERROR_FD)) == -1) {
+        PERROR("dup(" DEFAULT_ERROR_FD_STR ")");
+        goto err;
+    }
+    if (close(DEFAULT_ERROR_FD) == -1) {
+        PERROR("close(" DEFAULT_ERROR_FD_STR ")");
+        goto err;
+    }
+    if (dup2(logfd, DEFAULT_ERROR_FD) == -1) {
+        PERROR_FMT_FD(errout, "dup2(%d," DEFAULT_ERROR_FD_STR ")", logfd);
+        goto err;
+    }
     if (fcntl(errout, F_SETFD, O_CLOEXEC) == -1) {
-        PERROR("fcntl(.., F_SETFD, O_CLOEXEC)");
+        PERROR_FD(errout, "fcntl(.., F_SETFD, O_CLOEXEC)");
         goto err;
     }
 #else
-    // close it now + switch to test's stderr as the next best thing
-    if (close(errout) == -1) {
-        PERROR("close(errout)");
+    if (close(DEFAULT_ERROR_FD) == -1) {
+        PERROR("close(" DEFAULT_ERROR_FD_STR ")");
         goto err;
     }
-    current_error_fd = DEFAULT_ERROR_FD;
+    if (dup2(logfd, DEFAULT_ERROR_FD) == -1)
+        goto err;
+        // no PERROR() as stderr is already closed
 #endif
 
-    // do execv()
+    // logfd has been dup2()'d to 2, close the original fd from ptef_mklog()
+    close(logfd);
+    logfd = -1;
+
     if (execv(argv[0], argv) == -1) {
+#ifdef O_CLOEXEC
+        PERROR_FMT_FD(errout, "execv(%s,..)", argv[0]);
+#else
         PERROR_FMT("execv(%s,..)", argv[0]);
+#endif
         goto err;
     }
 
