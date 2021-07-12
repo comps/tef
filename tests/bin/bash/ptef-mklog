@@ -2,4 +2,4 @@
 PTEF_BASH_LIB="$TEST_BINDIR/bash/bash-builtins.so"
 . "$TEST_BINDIR/bash/bash-builtins.sh"
 argv0=$(basename "$0")
-ptef_mklog -a "$argv0" "$@"
+ptef_mklog "$@"

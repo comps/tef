@@ -1,0 +1,121 @@
+#!/bin/bash
+
+. testlib.sh
+
+# ----------
+
+function mkfile {
+	cat <<-'EOF'
+	#!/bin/bash
+	echo -e "argv0: $0\nargc: $#\nargv: $@" > exec_log
+	EOF
+}
+
+# ----------
+
+# Test simple file execution - the runner should find an executable file which
+# isn't itself and execute it
+function file_exec {
+	mkfile > executable
+	chmod +x executable
+	assert_ptef_runner > runner_out
+	assert_grep '^argv0: executable$' exec_log
+	assert_grep '^PASS[[:space:]]\+/executable$' runner_out
+}
+
+# Test that the runner silently ignores non-executable files while walking
+# a directory structure
+function file_nonexec {
+	mkfile > nonexecutable
+	assert_ptef_runner > runner_out
+	[ ! -f exec_log ]
+	assert_nogrep '' runner_out
+}
+
+# Test argv0-named executable in a subdir - the runner should execute it
+function dir_exec {
+	mkdir subd
+	mkfile > subd/ptef-runner
+	chmod +x subd/ptef-runner
+	assert_ptef_runner > runner_out
+	assert_grep '^argv0: ptef-runner$' subd/exec_log
+	# exec_log must be only in subd
+	[ ! -f exec_log ]
+	assert_grep '^PASS[[:space:]]\+/subd$' runner_out
+	# runner must not report results for executables inside the subdir
+	assert_nogrep '/subd/executable' runner_out
+}
+
+# Test that the runner silently ignores non-executable files in directories
+function dir_nonexec {
+	mkdir subd
+	mkfile > subd/ptef-runner
+	assert_ptef_runner > runner_out
+	# executable was not run, exec_log must not be present
+	[ ! -f subd/exec_log -a ! -f exec_log ]
+	assert_nogrep '' runner_out
+}
+
+# Test non-argv0-named executable in a subdir - the runner should ignore
+# the entire subdir
+function dir_otherexec {
+	mkdir subd
+	mkfile > subd/executable
+	chmod +x subd/executable
+	assert_ptef_runner > runner_out
+	[ ! -f subd/exec_log -a ! -f exec_log ]
+	assert_nogrep '' runner_out
+}
+
+# Test than a symlink to an executable is followed and treated as if it was
+# an executable itself
+function symlink_exec {
+	local exe="$TEST_TMPDIR/executable"
+	mkfile > "$exe"
+	chmod +x "$exe"
+	ln -s "$exe" link
+	assert_ptef_runner > runner_out
+	assert_grep '^argv0: link$' exec_log
+	assert_grep '^PASS[[:space:]]\+/link$' runner_out
+}
+function symlink_nonexec {
+	:
+}
+function symlink_dir {
+	:
+}
+function symlink_bad {
+	:
+}
+
+function hidden_exec {
+	:
+}
+function hidden_dir {
+	:
+}
+
+function empty {
+	:
+}
+
+function alpha_order {
+	:
+}
+
+
++ file_exec
++ file_nonexec
++ dir_exec
++ dir_nonexec
++ dir_otherexec
++ symlink_exec
+#+ symlink_nonexec
+#+ symlink_dir
+#+ symlink_bad
+#+ hidden_exec
+#+ hidden_dir
+#+ empty
+#+ alpha_order
+
+run_tests "$@"

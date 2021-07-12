@@ -1,12 +1,3 @@
-
-
-- MARK result
-  - done using alarm(2)
-  - make sure any other code is interrupt-safe (ie. waitpid) and re-tries what it was doing
-    if interrupted by a signal
-
-
-
 - warn that readdir(3) is used, which is generally thread-safe,
   but this is not guaranteed by POSIX.1
   - also document thread-safety for all 3 API functions
@@ -20,13 +11,6 @@
       - thus also do not start more than one instance of the runner in
         a single process
       - the limitation is waitpid() unable to wait for an array of pids
-
-- look for EINTR of every syscall used, make an INTR-safe wrapper
-  for each one of them
-  - alarm can interrupt anywhere
-  - incl. waitpid in runner
-
-- clean up includes
 
 - adjust PTEF.md to say that invalid (insane) arg must stop arg merging and the
   runner with exit with non-0 without running anything beyond the invalid arg
@@ -185,3 +169,18 @@
 - mention in PTEF.md that a runner MUST have at least 0, 1 and 2
   file descriptors open when being started
   - this is to guarantee dup() above 2
+
+
+----
+
+- MARK result
+  - done using alarm(2)
+  - make sure any other code is interrupt-safe (ie. waitpid) and re-tries what it was doing
+    if interrupted by a signal
+
+- look for EINTR of every syscall used, make an INTR-safe wrapper
+  for each one of them
+  - alarm can interrupt anywhere
+  - incl. waitpid in runner
+
+- clean up includes

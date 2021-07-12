@@ -1,56 +1,88 @@
 #!/bin/bash
-set -e
 argv0=$(basename "$0")
 
+# eat up option args, pass them later to ptef-runner
+opts=()
+while [ "$#" -gt 0 ]; do
+	[ "${1::1}" = "-" ] || break
+	opts+=("$1")
+	shift
+done
+
 failed=
-err() { echo >&2; echo "ERROR: $@" >&2; echo >&2; failed=1; }
+function err { echo -e "\nERROR: $@\n" >&2; }
 
 export PATH="$PWD/bin:$PATH"
 export LD_LIBRARY_PATH="$PWD/bin"
-
 export TEST_BINDIR="$PWD/bin"
+
 exec {TEST_VALGRIND_FD}>valgrind.log
 export TEST_VALGRIND_FD
 
-# make the hierarchy traversal logic independent on ptef,
-# to make sure the traversal itself can be tested as a feature
-# in a respective test
+function run_arg {
+	local test="${1#/}" binary=
 
-variants=("$@")
-[ "${#variants[@]}" -lt 1 ] && variants=(cli valgrind bash)  # TODO: python
+	local variant= subtest=
+	IFS=/ read -r variant subtest <<<"$test"
 
-set -o pipefail
-for variant in "${variants[@]}"; do
-	echo -e "\n::: $variant :::\n"
-	stdout_log="stdout-${variant}.log"
 	for binary in ptef-runner ptef-report ptef-mklog libptef.so; do
-		ln -sf "$variant/$binary" "bin/$binary"
-	done
-	for dir in *; do
-		if [ -x "$dir/$argv0" ]; then
-			pushd "$dir" >/dev/null
-			TEST_SUBDIR="$dir" "./$argv0"
-			popd >/dev/null
+		if [ ! -x "bin/$variant/$binary" ]; then
+			err "broken variant $variant"
+			return 1
 		fi
-	done | tee "$stdout_log" 
-	# replace PWD in the log, so we can diff it to a known state
-	awk -v from="$PWD" -v to="/ABS-PATH-WAS-HERE" \
-		'{ sub(from,to,$0); print $0 }' \
-		< "$stdout_log" > "$stdout_log.tmp"
-	mv -f "$stdout_log.tmp" "$stdout_log"
+		ln -sf "$variant/$binary" "bin/$binary" || return 1
+	done
+
+	if [ -n "$subtest" ]; then
+		subtest=("$subtest")
+	else
+		IFS=$'\n' read -r -d '' -a subtest < <(compgen -G test_\*)
+	fi
+
+	local results_log="results-${variant}.log" results_fd= rc=
+	exec {results_fd}>"$results_log"
+	PTEF_RESULTS_FD="$results_fd" ptef-report RUN "$variant"
+	#echo debuggg; export mine=$results_fd; bash
+	PTEF_PREFIX="/$variant" \
+		PTEF_LOGS="$PWD/logs" \
+		PTEF_RESULTS_FD="$results_fd" \
+		ptef-runner -a "$argv0" "${opts[@]}" "${subtest[@]}"
+	rc=$?
+	if [ "$rc" -eq 0 ]; then
+		PTEF_RESULTS_FD="$results_fd" ptef-report PASS "$variant"
+	else
+		PTEF_RESULTS_FD="$results_fd" ptef-report FAIL "$variant"
+	fi
+	exec {results_fd}>&-
+
+	# strip initial prefix from the results, for diffing
+	# - note that this produced empty 'RUN ' and 'PASS ' results
+	#   on the first and last line
+	sed -i "s%[[:space:]]\+/$variant% %" "$results_log"
+
+	return "$rc"
+}
+
+if [ "$#" -gt 0 ]; then
+	variants=("$@")
+else
+	variants=(/cli /valgrind /bash)  # TODO: python
+fi
+
+for variant in "${variants[@]}"; do
+	run_arg "$variant"
 done
 
-exec {TEST_VALGRIND_FD}>&-
-
-set +e
-
-# compare generated stdout to a known-good reference
-if [ -f stdout-reference.log ]; then
+# compare generated results to a known-good reference
+if [ -f results-reference.log ]; then
 	for variant in "${variants[@]}"; do
-		stdout_log="stdout-${variant}.log"
-		if ! cmp -s "$stdout_log" stdout-reference.log; then
-			err "$stdout_log differs from reference"
-			diff --color=auto -u stdout-reference.log "$stdout_log"
+		variant="${variant#/}"
+		# only if all tests were run
+		[ "$variant" = "${variant#*/*}" ] || continue
+		results_log="results-$variant.log"
+		if ! cmp -s "$results_log" results-reference.log; then
+			err "$results_log differs from reference"
+			diff --color=auto -u results-reference.log "$results_log"
 		fi
 	done
 fi

@@ -4,5 +4,5 @@
 argv0=$(basename "$0")
 target="$TEST_BINDIR/valgrind/cli/ptef-report"
 exec valgrind \
-	--leak-check=full --log-fd=$TEST_VALGRIND_FD \
-	-- "$target" -a "$argv0" "$@"
+	--leak-check=full --log-fd="$TEST_VALGRIND_FD" \
+	-- "$target" "$@"

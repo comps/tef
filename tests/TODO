@@ -19,8 +19,13 @@
 
 - log and compare stderr too, trim file names / line nrs in err msgs
 
+- runner_logs
+  - prefix and exec file vs exec dir
+    - the same .log file must be created the same way
+
 - PTEF_PREFIX
   - subdir test
+  - both executable and subdir have their name appended
 
 - ptef_report
   - unset prefix
