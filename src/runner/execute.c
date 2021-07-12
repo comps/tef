@@ -33,33 +33,30 @@ static _Noreturn void execute_child(char **argv, char *dir)
     int logfd = -1;
     int errout = -1;
 
-    char *testname;
+    char *ptef_prefix = getenv_defined("PTEF_PREFIX");
+    if (!ptef_prefix)
+        ptef_prefix = "";
+
+    // add the current testname (subdir name) to PTEF_PREFIX
+    char *testname = dir ? dir : argv[0];
+    size_t testname_len = strlen(testname);
+    size_t ptef_prefix_len = strlen(ptef_prefix);
+    // +2 for '/' and '\0'
+    if ((tmp = malloc(ptef_prefix_len+testname_len+2)) == NULL) {
+        PERROR("malloc");
+        goto err;
+    }
+    char *pos;
+    pos = memcpy_append(tmp, ptef_prefix, ptef_prefix_len);
+    *pos++ = '/';
+    pos = memcpy_append(pos, testname, testname_len);
+    *pos = '\0';
+    if (setenv("PTEF_PREFIX", tmp, 1) == -1) {
+        PERROR("setenv(PTEF_PREFIX, ..)");
+        goto err;
+    }
 
     if (dir) {
-        char *ptef_prefix = getenv_defined("PTEF_PREFIX");
-        if (!ptef_prefix)
-            ptef_prefix = "";
-
-        // add the current testname (subdir name) to PTEF_PREFIX
-        testname = dir;
-        size_t testname_len = strlen(testname);
-        size_t ptef_prefix_len = strlen(ptef_prefix);
-        // +2 for '/' and '\0'
-        if ((tmp = malloc(ptef_prefix_len+testname_len+2)) == NULL) {
-            PERROR("malloc");
-            goto err;
-        }
-
-        char *pos;
-        pos = memcpy_append(tmp, ptef_prefix, ptef_prefix_len);
-        *pos++ = '/';
-        pos = memcpy_append(pos, testname, testname_len);
-        *pos = '\0';
-        if (setenv("PTEF_PREFIX", tmp, 1) == -1) {
-            PERROR("setenv(PTEF_PREFIX, ..)");
-            goto err;
-        }
-
         // if PTEF_LOGS has relative path, prepend '../'
         char *ptef_logs = getenv_defined("PTEF_LOGS");
         if (ptef_logs && *ptef_logs != '/') {
@@ -78,8 +75,6 @@ static _Noreturn void execute_child(char **argv, char *dir)
                 goto err;
             }
         }
-    } else {
-        testname = argv[0];
     }
 
     char *ptef_nologs = getenv_defined("PTEF_NOLOGS");
