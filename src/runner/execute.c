@@ -82,10 +82,14 @@ static _Noreturn void execute_child(char **argv, char *dir)
         testname = argv[0];
     }
 
+    char *ptef_nologs = getenv_defined("PTEF_NOLOGS");
+
     // open a log file, duplicate it to "stderr"
-    if ((logfd = ptef_mklog(testname)) == -1) {
-        PERROR_FMT("ptef_mklog(%s)", testname);
-        goto err;
+    if (!ptef_nologs) {
+        if ((logfd = ptef_mklog(testname)) == -1) {
+            PERROR_FMT("ptef_mklog(%s)", testname);
+            goto err;
+        }
     }
 
     // cd into a subrunner directory
@@ -94,6 +98,14 @@ static _Noreturn void execute_child(char **argv, char *dir)
             PERROR_FMT("chdir(%s)", dir);
             goto err;
         }
+    }
+
+    if (ptef_nologs) {
+        // skip output redirection logic below, execv() directly
+        if (execv(argv[0], argv) == -1)
+            PERROR_FMT("execv(%s,..)", argv[0]);
+        // shouldn't be reached
+        goto err;
     }
 
     // replace stderr with logfd from ptef_mklog
