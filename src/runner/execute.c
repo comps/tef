@@ -201,14 +201,14 @@ static int finish_job(pid_t pid, struct exec_state *state, int exitcode)
 }
 
 // allocate enough for exec_state itself + for all the pid-to-name
-// mappings we'll ever need (there won't be more than opts->jobs children)
-struct exec_state *create_exec_state(struct ptef_runner_opts *opts)
+// mappings we'll ever need (there won't be more than maxjobs children)
+struct exec_state *create_exec_state(int maxjobs)
 {
     struct exec_state *state;
     state = malloc(sizeof(struct exec_state)
-                   + sizeof(struct pid_to_name) * opts->jobs);
+                   + sizeof(struct pid_to_name) * maxjobs);
     if (state != NULL) {
-        state->max_jobs = opts->jobs;
+        state->max_jobs = maxjobs;
         state->running_jobs = 0;
         struct pid_to_name empty = { -1, NULL };
         for (int i = 0; i < state->max_jobs; i++) {
@@ -244,7 +244,7 @@ int destroy_exec_state(struct exec_state *state)
 // - argv must have [0] allocated and unused (to be used for argv[0])
 //   and be terminated at [1] or later with NULL
 int execute(char *file, enum exec_entry_type typehint, char **argv,
-            struct ptef_runner_opts *opts, struct exec_state *state)
+            char *basename, struct exec_state *state)
 {
     if (typehint == EXEC_TYPE_UNKNOWN) {
         if (fstatat_type(AT_FDCWD, file, &typehint) == -1) {
@@ -261,7 +261,7 @@ int execute(char *file, enum exec_entry_type typehint, char **argv,
             break;
         case EXEC_TYPE_DIR:
             child_dir = file;
-            argv[0] = opts->argv0;  // argv0 of the runner
+            argv[0] = basename;  // argv0 of the runner
             break;
         default:
             ERROR_FMT("invalid exec type %d\n", typehint);

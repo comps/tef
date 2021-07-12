@@ -34,17 +34,19 @@ static void print_help(void)
 
 int main(int argc, char **argv)
 {
-    struct ptef_runner_opts opts = { 0 };
+    char *argv0 = NULL;
+    int jobs = 1;
+    int nomerge = 0;
 
     int c;
     while ((c = getopt(argc, argv, "a:j:i:nh")) != -1) {
         switch (c) {
             case 'a':
-                opts.argv0 = optarg;
+                argv0 = optarg;
                 break;
             case 'j':
-                opts.jobs = atoi(optarg);
-                if (opts.jobs < 1) {
+                jobs = atoi(optarg);
+                if (jobs < 1) {
                     ERROR_FMT("invalid job cnt: %s\n", optarg);
                     return 1;
                 }
@@ -56,7 +58,7 @@ int main(int argc, char **argv)
                 }
                 break;
             case 'n':
-                opts.nomerge_args = 1;
+                nomerge = 1;
                 break;
             case 'h':
                 print_help();
@@ -66,10 +68,10 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!opts.argv0)
-        opts.argv0 = basename(argv[0]);
+    if (!argv0)
+        argv0 = basename(argv[0]);
 
-    switch (ptef_runner(argc-optind, argv+optind, &opts)) {
+    switch (ptef_runner(argc-optind, argv+optind, argv0, jobs, nomerge)) {
         // success
         case 0:
             return 0;

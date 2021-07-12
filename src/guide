@@ -26,14 +26,6 @@
   - alarm can interrupt anywhere
   - incl. waitpid in runner
 
-- pipe support for ptef_mklog (?)
-  - instead of creating logfile to be used by runner that called ptef_mklog,
-    provide writing to log automatically
-  - could abstract PTEF_DEBUG_OUTPUT functionality so runner doesn't have to care
-
-- bash builtin - try getenv on BASH_ARGV0 to avoid '-a $(basename $0)'
-  - bash 5.0 .. :/
-
 - clean up includes
 
 - adjust PTEF.md to say that invalid (insane) arg must stop arg merging and the
@@ -81,8 +73,7 @@
       between status and test name
   - then add the extra stuff in additional per-feature section(s)
     - ie. automatic use of color if a terminal is detected, can be overriden
-      with PTEF_COLOR (unset or empty: auto, 0: never, 1: always)
-    - ie. RUN status when an executable is run, can be disabled via PTEF_NORUN
+      with PTEF_COLOR
 
 - note for parallel execution - what about argument merging?
   - should 'a/b a/c' run a twice wi 'b' and 'c' ?
@@ -141,6 +132,11 @@
 - mention in PTEF.md that symbolic links should always be followed
   - both symlinks to executable files *and* symlinks to subdirectories
 
+- mention in PTEF.md that result readers MUST be able to deal with unknown
+  statuses like RUN, SKIP, WAIVE, etc. (ignoring / skipping them if they're
+  not interesting to the reader)
+  - they MUST NOT consider unknown status an error
+
 - document zero-length arg in PTEF.md
   - specifying /some/test/ will run 'test' with one empty "" argument
     whereas /some/test will pass no arguments
@@ -149,9 +145,43 @@
   - useful for testing a parent execution chain without actually running
     anything in the leaf directory
 
-- change exe ignores from runner arg to PTEF_IGNORE_EXE, slash-separated
-  - and document it in PTEF.md
+- PTEF_IGNORE_FILES, newline-separated
+  - document it in PTEF.md
     - mention that this list extends the argv0 basename ignore to additional
       executable names
   - this makes more sense if the use case is to ignore 'build' and 'cleanup'
     executables while doing 'run'
+  - it's file names, incl. special files - directories
+    - ie. 'foo' in 'foo/run' for subrunners
+  - ONLY for arg-less operation
+
+- PTEF_COLOR
+  - unset or empty: auto, 0: never, 1: always
+  - document in PTEF.md
+
+- PTEF_NOLOGS
+  - do not create log files, do not redirect stderr
+  - useful for debugging as everything will be printed on the console
+  - runner must still propagate PTEF_LOGS and adjust to any subrunners
+    in case they want to override PTEF_NOLOGS
+    - so PTEF_NOLOGS really only prevents .log creation + stderr redirect
+
+- when documenting PTEF.md, show algorithm examples, ie. runner:
+    define argv0 as
+      basename(argv[0])
+    define execute(path,args) as
+      if path is directory
+        launch path/argv0, passing it args
+      else if path is executable regular file
+        launch path, passing it args
+    if arguments were given
+      for each argument, from first to last
+        split it into part1,part2 on the first '/' occurence
+        do execute(part1,part2)
+    else
+      for each file in CWD that isn't argv0
+        execute(file)
+
+- mention in PTEF.md that a runner MUST have at least 0, 1 and 2
+  file descriptors open when being started
+  - this is to guarantee dup() above 2

@@ -36,10 +36,10 @@ static char *sane_arg(char *a)
     return a;
 }
 
-int for_each_arg(int argc, char **argv, struct ptef_runner_opts *opts)
+int for_each_arg(int argc, char **argv, char *basename, int jobs)
 {
     struct exec_state *state;
-    if ((state = create_exec_state(opts)) == NULL) {
+    if ((state = create_exec_state(jobs)) == NULL) {
         PERROR("create_exec_state");
         return -1;
     }
@@ -62,7 +62,7 @@ int for_each_arg(int argc, char **argv, struct ptef_runner_opts *opts)
         // standalone arg, just execute it without args
         if (!slash) {
             arg[1] = NULL;
-            if (execute(sane, EXEC_TYPE_UNKNOWN, arg, opts, state) == -1)
+            if (execute(sane, EXEC_TYPE_UNKNOWN, arg, basename, state) == -1)
                 goto err;
             continue;
         }
@@ -75,7 +75,7 @@ int for_each_arg(int argc, char **argv, struct ptef_runner_opts *opts)
         }
 
         arg[1] = sane+prefix_len+1;  // skip prefix + '/'
-        if (execute(prefix, EXEC_TYPE_UNKNOWN, arg, opts, state) == -1)
+        if (execute(prefix, EXEC_TYPE_UNKNOWN, arg, basename, state) == -1)
             goto err;
 
         free(prefix);
@@ -90,12 +90,12 @@ err:
     return -1;
 }
 
-int for_each_merged_arg(int argc, char **argv, struct ptef_runner_opts *opts)
+int for_each_merged_arg(int argc, char **argv, char *basename, int jobs)
 {
     char **merged;
     struct exec_state *state;
 
-    if ((state = create_exec_state(opts)) == NULL) {
+    if ((state = create_exec_state(jobs)) == NULL) {
         PERROR("create_exec_state");
         return -1;
     }
@@ -127,7 +127,7 @@ int for_each_merged_arg(int argc, char **argv, struct ptef_runner_opts *opts)
             // or if prefix (incl. '/' after it) doesn't match
             if (!slash || (sane && (strncmp(sane, prefix, prefix_len) != 0 || sane[prefix_len] != '/'))) {
                 // finish merge; process previously merged args
-                if (execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, state) == -1)
+                if (execute(prefix, EXEC_TYPE_UNKNOWN, merged, basename, state) == -1)
                     goto err;
                 free(prefix);
                 prefix = NULL;
@@ -143,7 +143,7 @@ int for_each_merged_arg(int argc, char **argv, struct ptef_runner_opts *opts)
 
         // standalone arg, just execute it, don't merge
         if (!slash) {
-            if (execute(sane, EXEC_TYPE_UNKNOWN, merged, opts, state) == -1)
+            if (execute(sane, EXEC_TYPE_UNKNOWN, merged, basename, state) == -1)
                 goto err;
             continue;
         }
@@ -165,7 +165,7 @@ int for_each_merged_arg(int argc, char **argv, struct ptef_runner_opts *opts)
 
     // finish any merge-in-progress, execute it
     if (prefix)
-        if (execute(prefix, EXEC_TYPE_UNKNOWN, merged, opts, state) == -1)
+        if (execute(prefix, EXEC_TYPE_UNKNOWN, merged, basename, state) == -1)
             goto err;
 
     free(prefix);

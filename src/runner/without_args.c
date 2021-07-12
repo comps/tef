@@ -183,10 +183,10 @@ err:
     return -1;
 }
 
-int for_each_exec(struct ptef_runner_opts *opts)
+int for_each_exec(char *basename, int jobs)
 {
     struct exec_state *state;
-    if ((state = create_exec_state(opts)) == NULL) {
+    if ((state = create_exec_state(jobs)) == NULL) {
         PERROR("create_exec_state");
         return -1;
     }
@@ -199,14 +199,14 @@ int for_each_exec(struct ptef_runner_opts *opts)
         if ((ignored = str_to_array(ignore_files, '\n')) == NULL)
             goto err;
 
-    int cnt = find_execs(&ents, opts->argv0, ignored);
+    int cnt = find_execs(&ents, basename, ignored);
     if (cnt == -1)
         goto err;
 
     char *argv[2] = { NULL };
     int i;
     for (i = 0; i < cnt; i++) {
-        if (execute(ents[i]->name, ents[i]->type, argv, opts, state) == -1)
+        if (execute(ents[i]->name, ents[i]->type, argv, basename, state) == -1)
             goto err;
         free(ents[i]);
     }

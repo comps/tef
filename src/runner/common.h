@@ -32,13 +32,13 @@ struct exec_state {
     struct pid_to_name map[];
 };
 
-struct exec_state *create_exec_state(struct ptef_runner_opts *opts);
+struct exec_state *create_exec_state(int jobs);
 int destroy_exec_state(struct exec_state *state);
 int execute(char *exe, enum exec_entry_type typehint, char **argv,
-            struct ptef_runner_opts *opts, struct exec_state *state);
+            char *basename, struct exec_state *state);
 
-int for_each_arg(int argc, char **argv, struct ptef_runner_opts *opts);
+int for_each_arg(int argc, char **argv, char *basename, int jobs);
 
-int for_each_merged_arg(int argc, char **argv, struct ptef_runner_opts *opts);
+int for_each_merged_arg(int argc, char **argv, char *basename, int jobs);
 
-int for_each_exec(struct ptef_runner_opts *opts);
+int for_each_exec(char *basename, int jobs);

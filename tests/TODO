@@ -1,5 +1,7 @@
 
 - individual options for runner (-a, etc.)
+  - including convenience options that export env variables,
+    like PTEF_IGNORE_FILES, etc.
 
 - parallel execution test
   - 20 jobs, with some locking/semaphore and 0.1 sleep
@@ -9,6 +11,13 @@
 - runner reports to stdout
   - black&white to pipe
   - color on terminal
+
+- no extra file descriptors open in executable/subrunner
+
+- pass non-executable as arg (already exists), but with PTEF_NOLOGS
+  - the error msg should make it through, valgrind without error
+
+- log and compare stderr too, trim file names / line nrs in err msgs
 
 - PTEF_PREFIX
   - subdir test

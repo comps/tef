@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <bash/builtins.h>
-//#include <bash/builtins/bashgetopt.h>
 #include <bash/variables.h>
 #include <bash/arrayfunc.h>
 #include <bash/externs.h>
@@ -25,71 +24,6 @@ extern void builtin_error();
 // and thus the child execv()s with the old env var values
 //
 // therefore don't do runner as a bash builtin
-
-#if 0
-extern void builtin_usage();
-extern char **make_builtin_argv();
-
-// the libgen.h version may modify path
-static char *basename(char *path)
-{
-    char *p = strrchr(path, '/');
-    return p ? p + 1 : path;
-}
-
-static int runner_main(WORD_LIST *list)
-{
-    struct ptef_runner_opts opts = { 0 };
-
-    reset_internal_getopt();
-    int opt;
-    while ((opt = internal_getopt(list, "a:j:i:nh")) != -1) {
-        switch (opt) {
-            case 'a':
-                opts.argv0 = list_optarg;
-                break;
-            case 'j':
-                opts.jobs = atoi(list_optarg);
-                if (opts.jobs < 1) {
-                    builtin_error("invalid job cnt: %s", list_optarg);
-                    return 1;
-                }
-                break;
-            case 'n':
-                opts.nomerge_args = 1;
-                break;
-            case GETOPT_HELP:
-                builtin_usage();
-                return 0;
-            default:
-                builtin_usage();
-                return 1;
-        }
-    }
-    list = loptend;
-
-    if (!opts.argv0)
-        opts.argv0 = basename(dollar_vars[0]);
-
-    int argc;
-    char **argv = strvec_from_word_list(list, 0, 0, &argc);
-    int ret = ptef_runner(argc, argv, &opts);
-    free(argv);
-    switch (ret) {
-        // success
-        case 0:
-            return 0;
-        // internal error
-        case -1:
-            return 1;
-        // test error
-        default:
-            return 2;
-    }
-
-    return 0;
-}
-#endif
 
 //
 // report
@@ -176,20 +110,6 @@ static int mklog_main(WORD_LIST *test)
 //
 // builtin boilerplate
 //
-#if 0
-static char *runner_help[] = {
-    "  -a BASE  argv0 basename, overriding autodetection",
-    "  -j NR    number of parallel jobs (tests)",
-    "  -i EXE   ignore exe filename, can specify multiple times",
-    "  -n       don't merge arguments of subrunners (always pass 1 arg)",
-    "",
-    "Executes the PTEF runner logic from CWD, executing executables",
-    "and traversing subdirectories.",
-    "If TEST is specified, runs only that test, without scanning for",
-    "executables.",
-    NULL
-};
-#endif
 static char *report_help[] = {
     "Reports STATUS for a test named TEST, prepending PTEF_PREFIX",
     "to the TEST name, copying the report to PTEF_RESULTS_FD if defined.",
@@ -203,16 +123,6 @@ static char *mklog_help[] = {
 };
 // must be named <name>_struct
 // name, function, flags, log_doc, short_doc, handle (unused)
-#if 0
-struct builtin ptef_runner_struct = {
-    "ptef_runner",
-    runner_main,
-    BUILTIN_ENABLED,
-    runner_help,
-    "ptef_runner [OPTIONS] [TEST]...",
-    NULL
-};
-#endif
 struct builtin ptef_report_struct = {
     "ptef_report",
     report_main,
