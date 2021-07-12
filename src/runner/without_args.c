@@ -20,7 +20,7 @@
 char **str_to_array(char *input, char sep)
 {
     // str len and separator cnt
-    int len = 0, cnt = 0;
+    size_t len = 0, cnt = 0;
     char *tmp = input;
     while (*tmp++ != '\0') {
         len++;
@@ -43,13 +43,13 @@ char **str_to_array(char *input, char sep)
     tmp = ((char *)arr) + (cnt+1)*sizeof(char**);
     memcpy(tmp, input, len+1);  // incl. '\0'
 
-    int i;
-    for (i = 0; i < cnt-1; i++) {
+    size_t i;
+    for (i = 0; i+1 < cnt; i++) {  // i+1 to avoid last member
         arr[i] = tmp;
         for (; *tmp != sep; tmp++);
         *tmp++ = '\0';
     }
-    arr[i++] = tmp;
+    arr[i++] = tmp;  // last member
     arr[i] = NULL;
 
     return arr;

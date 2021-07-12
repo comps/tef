@@ -30,15 +30,30 @@ static pid_t waitpid_safe(pid_t pid, int *wstatus, int options)
 static _Noreturn void execute_child(char **argv, char *dir)
 {
     char *tmp = NULL;
-    int logfd = -1;
     int errout = -1;
+
+    // if we're descending into subdir, use the directory name,
+    // else use the executable name
+    char *testname = dir ? dir : argv[0];
+
+    char *ptef_nologs = getenv_defined("PTEF_NOLOGS");
+
+    // open a log file, duplicate it to stderr
+    // - this has to be done prior to prefix adjustment below
+    //   as ptef_mklog() already appends the test name and .log
+    int logfd;
+    if (!ptef_nologs) {
+        if ((logfd = ptef_mklog(testname)) == -1) {
+            PERROR_FMT("ptef_mklog(%s)", testname);
+            goto err;
+        }
+    }
 
     char *ptef_prefix = getenv_defined("PTEF_PREFIX");
     if (!ptef_prefix)
         ptef_prefix = "";
 
     // add the current testname (subdir name) to PTEF_PREFIX
-    char *testname = dir ? dir : argv[0];
     size_t testname_len = strlen(testname);
     size_t ptef_prefix_len = strlen(ptef_prefix);
     // +2 for '/' and '\0'
@@ -75,20 +90,8 @@ static _Noreturn void execute_child(char **argv, char *dir)
                 goto err;
             }
         }
-    }
 
-    char *ptef_nologs = getenv_defined("PTEF_NOLOGS");
-
-    // open a log file, duplicate it to "stderr"
-    if (!ptef_nologs) {
-        if ((logfd = ptef_mklog(testname)) == -1) {
-            PERROR_FMT("ptef_mklog(%s)", testname);
-            goto err;
-        }
-    }
-
-    // cd into a subrunner directory
-    if (dir) {
+        // cd into a subrunner directory
         if (chdir(dir) == -1) {
             PERROR_FMT("chdir(%s)", dir);
             goto err;
