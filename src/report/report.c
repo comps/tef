@@ -126,10 +126,16 @@ int ptef_report_v0(char *status, char *name)
 {
     char *status_pretty = status;
 
-    // if fd 1 is terminal, look up status color
-    // if not or if status is unknown, color remains NULL --> no color codes
-    bool isterm = is_terminal(TERMINAL_FD);
-    if (isterm) {
+    bool use_color;
+    char *ptef_color = getenv_defined("PTEF_COLOR");
+    if (ptef_color) {
+        use_color = strcmp(ptef_color, "1") == 0 ? true : false;
+    } else {
+        // if fd 1 is terminal, look up status color
+        use_color = is_terminal(TERMINAL_FD);
+    }
+
+    if (use_color) {
         for (unsigned long i = 0; i < REWRITES_CNT; i++) {
             if (strcmp(status_rewrites[i][0], status)==0) {
                 status_pretty = status_rewrites[i][1];
