@@ -1,0 +1,9 @@
+*.o
+*.a
+*.la
+*.so
+*.so.*
+
+cli/ptef-mklog
+cli/ptef-report
+cli/ptef-runner

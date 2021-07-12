@@ -1,9 +1,2 @@
-bin/*
-
-**/logs
-
 *.swp
-
-#src/runner
-#src/report
-#src/mklog
+*~
