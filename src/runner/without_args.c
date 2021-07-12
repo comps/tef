@@ -16,6 +16,45 @@
 
 #include "common.h"
 
+// transform sep-separated string into malloc'd char**
+char **str_to_array(char *input, char sep)
+{
+    // str len and separator cnt
+    int len = 0, cnt = 0;
+    char *tmp = input;
+    while (*tmp++ != '\0') {
+        len++;
+        if (*tmp == sep)
+            cnt++;
+    }
+    cnt++;  // last array member after last sep
+
+    // allocate cnt*sizeof(char**) for the array
+    // plus 1x sizeof(char**) for a terminating NULL
+    // plus len*sizeof(char) for a copy of input (we'll be modifying it)
+    // plus 1x sizeof(char) for a terminating '\0' of the string
+
+    char **arr;
+    if ((arr = malloc((cnt+1)*sizeof(char**) + len+1)) == NULL) {
+        PERROR("malloc");
+        return NULL;
+    }
+
+    tmp = ((char *)arr) + (cnt+1)*sizeof(char**);
+    memcpy(tmp, input, len+1);  // incl. '\0'
+
+    int i;
+    for (i = 0; i < cnt-1; i++) {
+        arr[i] = tmp;
+        for (; *tmp != sep; tmp++);
+        *tmp++ = '\0';
+    }
+    arr[i++] = tmp;
+    arr[i] = NULL;
+
+    return arr;
+}
+
 // used to wrap enum exec_entry_type into an dirent-like
 // structure, for convenience
 struct exec_entry {
@@ -146,18 +185,23 @@ err:
 
 int for_each_exec(struct ptef_runner_opts *opts)
 {
-    struct exec_entry **ents;
-    int cnt;
-
     struct exec_state *state;
     if ((state = create_exec_state(opts)) == NULL) {
         PERROR("create_exec_state");
         return -1;
     }
 
-    cnt = find_execs(&ents, opts->argv0, opts->ignore_files);
+    struct exec_entry **ents = NULL;
+    char **ignored = NULL;
+
+    char *ignore_files = getenv_defined("PTEF_IGNORE_FILES");
+    if (ignore_files)
+        if ((ignored = str_to_array(ignore_files, '\n')) == NULL)
+            goto err;
+
+    int cnt = find_execs(&ents, opts->argv0, ignored);
     if (cnt == -1)
-        return -1;
+        goto err;
 
     char *argv[2] = { NULL };
     int i;
@@ -168,12 +212,14 @@ int for_each_exec(struct ptef_runner_opts *opts)
     }
 
     free(ents);
+    free(ignored);
     return destroy_exec_state(state);
 
 err:
     for (; i < cnt; i++)
         free(ents[i]);
     free(ents);
+    free(ignored);
     destroy_exec_state(state);
     return -1;
 }

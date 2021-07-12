@@ -23,7 +23,7 @@ static void print_help(void)
             "\n"
             "  -a BASE  argv0 basename, overriding autodetection\n"
             "  -j NR    number of parallel jobs (tests)\n"
-            "  -i EXE   ignore exe filename, can specify multiple times\n"
+            "  -i IGN   set PTEF_IGNORE_FILES to IGN, export it\n"
             "  -n       don't merge arguments of subrunners (always pass 1 arg)\n"
             "\n"
             "Executes the PTEF runner logic from CWD, executing executables\n"
@@ -35,8 +35,6 @@ static void print_help(void)
 int main(int argc, char **argv)
 {
     struct ptef_runner_opts opts = { 0 };
-
-    int ignored_cnt = 1;  // terminating NULL
 
     int c;
     while ((c = getopt(argc, argv, "a:j:i:nh")) != -1) {
@@ -52,12 +50,10 @@ int main(int argc, char **argv)
                 }
                 break;
             case 'i':
-                // TODO: remove, rework into variable instead
-                ignored_cnt++;
-                opts.ignore_files =
-                    realloc_safe(opts.ignore_files, sizeof(char**)*ignored_cnt);
-                opts.ignore_files[ignored_cnt-2] = optarg;
-                opts.ignore_files[ignored_cnt-1] = NULL;
+                if (setenv("PTEF_IGNORE_FILES", optarg, 1) == -1) {
+                    PERROR("setenv");
+                    return 1;
+                }
                 break;
             case 'n':
                 opts.nomerge_args = 1;
