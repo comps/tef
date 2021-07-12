@@ -1,6 +1,0 @@
-#!/bin/sh
-a0base=$(basename "$0")
-runner() { tef-runner -a "$a0base" "$@"; }
-
-# run all
-runner "$@"

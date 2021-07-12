@@ -1,2 +1,0 @@
-#!/bin/sh
-mount | grep 'on /sys/kernel/security type securityfs'

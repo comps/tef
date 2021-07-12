@@ -1,3 +1,0 @@
-#!/bin/sh
-a0base=$(basename "$0")
-tef-runner -a "$a0base" "$@"

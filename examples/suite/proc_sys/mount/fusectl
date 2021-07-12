@@ -1,2 +1,0 @@
-#!/bin/sh
-mount | grep 'on /sys/fs/fuse/connections type fusectl'

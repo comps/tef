@@ -1,7 +1,0 @@
-#!/bin/bash
-case "$(basename $0)" in
-	par1) echo "this is PAR1" ;;
-	par2) echo "this is PAR2" ;;
-	par3) echo "this is PAR3" ;;
-esac
-echo "got $# args:" "$@"

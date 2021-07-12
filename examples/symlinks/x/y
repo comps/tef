@@ -1,3 +1,0 @@
-#!/bin/bash
-echo y running: \$#: $#   \$@: "$@"
-exit 0
