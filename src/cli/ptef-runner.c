@@ -24,7 +24,8 @@ static void print_help(void)
             "  -a BASE  argv0 basename, overriding autodetection\n"
             "  -j NR    number of parallel jobs (tests)\n"
             "  -i IGN   set PTEF_IGNORE_FILES to IGN, export it\n"
-            "  -n       don't merge arguments of subrunners (always pass 1 arg)\n"
+            "  -v       set PTEF_NOLOGS and export it\n"
+            "  -m       don't merge arguments of subrunners (always pass 1 arg)\n"
             "\n"
             "Executes the PTEF runner logic from CWD, executing executables\n"
             "and traversing subdirectories.\n"
@@ -39,7 +40,7 @@ int main(int argc, char **argv)
     int nomerge = 0;
 
     int c;
-    while ((c = getopt(argc, argv, "a:j:i:nh")) != -1) {
+    while ((c = getopt(argc, argv, "a:j:i:vmh")) != -1) {
         switch (c) {
             case 'a':
                 argv0 = optarg;
@@ -57,7 +58,13 @@ int main(int argc, char **argv)
                     return 1;
                 }
                 break;
-            case 'n':
+            case 'v':
+                if (setenv("PTEF_NOLOGS", "1", 1) == -1) {
+                    PERROR("setenv");
+                    return 1;
+                }
+                break;
+            case 'm':
                 nomerge = 1;
                 break;
             case 'h':
