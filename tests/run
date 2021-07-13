@@ -36,13 +36,12 @@ function run_arg {
 	if [ -n "$subtest" ]; then
 		subtest=("$subtest")
 	else
-		IFS=$'\n' read -r -d '' -a subtest < <(compgen -G test_\*)
+		subtest=()
 	fi
 
 	local results_log="results-${variant}.log" results_fd= rc=
 	exec {results_fd}>"$results_log"
 	PTEF_RESULTS_FD="$results_fd" ptef-report RUN "$variant"
-	#echo debuggg; export mine=$results_fd; bash
 	PTEF_PREFIX="/$variant" \
 		PTEF_LOGS="$PWD/logs" \
 		PTEF_RESULTS_FD="$results_fd" \

@@ -1,6 +1,7 @@
 **/logs
-**/testlogs
 *.log
+testdir
+tmpdir
 
 bin/bash/bash-builtins.sh
 bin/bash/bash-builtins.so
